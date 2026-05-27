@@ -1,387 +1,472 @@
 {% extends "base.html" %}
-{% block title %}AI Content Writer - SEO Tool{% endblock %}
-{% block page_title %}AI Content Writer{% endblock %}
+{% block title %}AI Writer - SEO Tool{% endblock %}
+{% block page_title %}AI Content Studio{% endblock %}
 
 {% block content %}
-<div x-data="aiWriter()" x-init="loadModels()">
-    <!-- Tabs -->
+<div x-data="aiStudio()" x-init="loadModels()">
+    <!-- Workflow Tabs -->
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="flex border-b overflow-x-auto">
-            <button @click="tab='generate'" :class="tab==='generate' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium whitespace-nowrap">
-                <i class="fas fa-pen-fancy mr-1"></i> Generate Content
+            <button @click="tab='research'" :class="tab==='research' ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50' : 'text-gray-500'" class="px-5 py-3 text-sm font-medium whitespace-nowrap flex items-center gap-2">
+                <i class="fas fa-search"></i> 1. Research
             </button>
-            <button @click="tab='optimize'" :class="tab==='optimize' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium whitespace-nowrap">
-                <i class="fas fa-magic mr-1"></i> Optimize Content
+            <button @click="tab='write'" :class="tab==='write' ? 'border-b-2 border-purple-500 text-purple-600 bg-purple-50' : 'text-gray-500'" class="px-5 py-3 text-sm font-medium whitespace-nowrap flex items-center gap-2">
+                <i class="fas fa-pen-fancy"></i> 2. Auto Write
             </button>
-            <button @click="tab='titles'" :class="tab==='titles' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium whitespace-nowrap">
-                <i class="fas fa-heading mr-1"></i> Title Generator
+            <button @click="tab='edit'" :class="tab==='edit' ? 'border-b-2 border-green-500 text-green-600 bg-green-50' : 'text-gray-500'" class="px-5 py-3 text-sm font-medium whitespace-nowrap flex items-center gap-2">
+                <i class="fas fa-edit"></i> 3. Edit & Optimize
             </button>
-            <button @click="tab='compare'" :class="tab==='compare' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium whitespace-nowrap">
-                <i class="fas fa-balance-scale mr-1"></i> Compare Models
+            <button @click="tab='test'" :class="tab==='test' ? 'border-b-2 border-orange-500 text-orange-600 bg-orange-50' : 'text-gray-500'" class="px-5 py-3 text-sm font-medium whitespace-nowrap flex items-center gap-2">
+                <i class="fas fa-flask"></i> 4. Test & QA
             </button>
         </div>
     </div>
 
 
-    <!-- Generate Content Tab -->
-    <div x-show="tab==='generate'">
+    <!-- ============ TAB 1: KEYWORD RESEARCH ============ -->
+    <div x-show="tab==='research'" x-cloak>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Form -->
-            <div class="lg:col-span-1 bg-white rounded-lg shadow p-6">
-                <h3 class="font-semibold mb-4">Content Settings</h3>
-                <form @submit.prevent="generateContent()" class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Topic / Title</label>
-                        <input type="text" x-model="form.topic" placeholder="e.g., Best SEO Practices 2025" class="w-full border rounded-lg px-3 py-2 text-sm" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Target Keyword</label>
-                        <input type="text" x-model="form.keyword" placeholder="e.g., seo practices" class="w-full border rounded-lg px-3 py-2 text-sm" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Secondary Keywords</label>
-                        <input type="text" x-model="form.secondary_keywords" placeholder="keyword1, keyword2" class="w-full border rounded-lg px-3 py-2 text-sm">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Content Type</label>
-                            <select x-model="form.content_type" class="w-full border rounded-lg px-3 py-2 text-sm">
-                                <option value="article">Article</option>
-                                <option value="blog_post">Blog Post</option>
-                                <option value="product_description">Product</option>
-                                <option value="meta_tags">Meta Tags</option>
-                                <option value="outline">Outline</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Word Count</label>
-                            <input type="number" x-model="form.word_count" min="100" max="5000" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Tone</label>
-                            <select x-model="form.tone" class="w-full border rounded-lg px-3 py-2 text-sm">
-                                <option value="professional">Professional</option>
-                                <option value="conversational">Conversational</option>
-                                <option value="technical">Technical</option>
-                                <option value="casual">Casual</option>
-                                <option value="formal">Formal</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Language</label>
-                            <select x-model="form.language" class="w-full border rounded-lg px-3 py-2 text-sm">
-                                <option value="en">English</option>
-                                <option value="vi">Vietnamese</option>
-                                <option value="es">Spanish</option>
-                                <option value="fr">French</option>
-                                <option value="de">German</option>
-                                <option value="ja">Japanese</option>
-                                <option value="ko">Korean</option>
-                                <option value="zh">Chinese</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">AI Model</label>
-                        <select x-model="form.model_id" @change="updateProvider()" class="w-full border rounded-lg px-3 py-2 text-sm">
-                            <template x-for="m in models" :key="m.model_id">
-                                <option :value="m.model_id" x-text="m.display_name + ' (' + m.provider + ')'"></option>
-                            </template>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Extra Instructions</label>
-                        <textarea x-model="form.instructions" rows="2" placeholder="Any additional instructions..." class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
-                    </div>
-                    <button type="submit" :disabled="loading" class="w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium">
-                        <i class="fas fa-robot mr-1"></i> <span x-text="loading ? 'Generating...' : 'Generate Content'"></span>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-4"><i class="fas fa-search text-blue-500"></i> Keyword Research</h3>
+                <form @submit.prevent="researchKeyword()" class="space-y-3">
+                    <input type="text" x-model="researchForm.keyword" placeholder="Enter keyword to research" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    <input type="text" x-model="researchForm.niche" placeholder="Niche/Industry (e.g., digital marketing)" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <select x-model="researchForm.language" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <option value="en">English</option><option value="vi">Vietnamese</option>
+                        <option value="es">Spanish</option><option value="fr">French</option>
+                    </select>
+                    <select x-model="researchForm.model_id" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <template x-for="m in models" :key="m.model_id"><option :value="m.model_id" x-text="m.display_name"></option></template>
+                    </select>
+                    <button type="submit" :disabled="loading" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium">
+                        <span x-text="loading ? 'Researching...' : 'Research Keyword'"></span>
                     </button>
                 </form>
             </div>
-
-
-            <!-- Result -->
             <div class="lg:col-span-2 space-y-4">
-                <div x-show="genResult" x-cloak class="bg-white rounded-lg shadow p-6">
-                    <!-- Stats bar -->
-                    <div class="flex items-center justify-between mb-4 pb-3 border-b">
-                        <div class="flex gap-4 text-sm">
-                            <span class="text-gray-500">Words: <b class="text-gray-800" x-text="genResult?.word_count"></b></span>
-                            <span class="text-gray-500">SEO: <b :class="(genResult?.seo_score||0) >= 80 ? 'text-green-600' : 'text-yellow-600'" x-text="(genResult?.seo_score||0) + '/100'"></b></span>
-                            <span class="text-gray-500">Time: <b x-text="genResult?.generation_time_sec + 's'"></b></span>
-                            <span class="text-gray-500">Cost: <b x-text="'$' + (genResult?.estimated_cost||0).toFixed(4)"></b></span>
+                <div x-show="researchResult" x-cloak class="bg-white rounded-lg shadow p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Results: <span class="text-blue-600" x-text="researchResult?.primary_keyword"></span></h3>
+                        <span class="text-xs text-gray-400" x-text="researchResult?.generation_time_sec + 's'"></span>
+                    </div>
+                    <!-- Overview Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-blue-50 rounded-lg p-3 text-center"><p class="text-lg font-bold text-blue-700" x-text="researchResult?.estimated_monthly_volume || '-'"></p><p class="text-xs text-gray-500">Volume</p></div>
+                        <div class="bg-red-50 rounded-lg p-3 text-center"><p class="text-lg font-bold text-red-700" x-text="researchResult?.estimated_difficulty || '-'"></p><p class="text-xs text-gray-500">Difficulty</p></div>
+                        <div class="bg-green-50 rounded-lg p-3 text-center"><p class="text-lg font-bold text-green-700" x-text="researchResult?.competition_level || '-'"></p><p class="text-xs text-gray-500">Competition</p></div>
+                        <div class="bg-purple-50 rounded-lg p-3 text-center"><p class="text-lg font-bold text-purple-700" x-text="researchResult?.search_intent || '-'"></p><p class="text-xs text-gray-500">Intent</p></div>
+                    </div>
+                    <!-- Related Keywords -->
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Related Keywords</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <template x-for="kw in (researchResult?.related_keywords || []).slice(0,15)" :key="kw.keyword">
+                                <span class="px-2 py-1 bg-gray-100 rounded text-xs cursor-pointer hover:bg-blue-100" @click="researchForm.keyword=kw.keyword" x-text="kw.keyword + ' (' + (kw.volume_estimate||'?') + ')'"></span>
+                            </template>
                         </div>
-                        <button @click="copyContent()" class="text-sm text-blue-600 hover:text-blue-800"><i class="fas fa-copy"></i> Copy</button>
                     </div>
-                    <!-- Meta tags -->
-                    <div x-show="genResult?.meta_title" class="mb-4 p-3 bg-gray-50 rounded-lg text-sm space-y-1">
-                        <p><span class="font-medium text-gray-600">Meta Title:</span> <span x-text="genResult?.meta_title"></span></p>
-                        <p><span class="font-medium text-gray-600">Meta Desc:</span> <span x-text="genResult?.meta_description"></span></p>
+                    <!-- Long-tail Keywords -->
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Long-tail Keywords</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <template x-for="kw in (researchResult?.long_tail_keywords || []).slice(0,10)" :key="kw.keyword">
+                                <span class="px-2 py-1 bg-green-50 rounded text-xs" x-text="kw.keyword"></span>
+                            </template>
+                        </div>
                     </div>
-                    <!-- Content -->
-                    <div class="prose max-w-none text-sm leading-relaxed whitespace-pre-wrap" x-text="genResult?.content"></div>
-                    <!-- Suggestions -->
-                    <div x-show="genResult?.suggestions?.length" class="mt-4 p-3 bg-yellow-50 rounded-lg">
-                        <h4 class="text-sm font-semibold text-yellow-800 mb-2"><i class="fas fa-lightbulb"></i> Suggestions</h4>
-                        <ul class="text-xs text-yellow-700 space-y-1">
-                            <template x-for="s in genResult?.suggestions"><li x-text="'- ' + s"></li></template>
-                        </ul>
+                    <!-- Questions -->
+                    <div x-show="researchResult?.question_keywords?.length" class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">People Also Ask</h4>
+                        <ul class="text-sm space-y-1"><template x-for="q in researchResult?.question_keywords?.slice(0,8)"><li class="text-gray-600" x-text="'• ' + q"></li></template></ul>
                     </div>
+                    <!-- Strategy -->
+                    <div x-show="researchResult?.recommended_strategy" class="bg-yellow-50 rounded-lg p-4">
+                        <h4 class="text-sm font-medium text-yellow-800 mb-2"><i class="fas fa-lightbulb"></i> Recommended Strategy</h4>
+                        <p class="text-xs text-gray-700 mb-1">Target: <b x-text="researchResult?.recommended_strategy?.primary_target"></b></p>
+                        <p class="text-xs text-gray-700 mb-1">Content Type: <b x-text="researchResult?.recommended_strategy?.content_type_recommendation"></b></p>
+                        <p class="text-xs text-gray-700">Word Count: <b x-text="researchResult?.recommended_strategy?.estimated_word_count"></b></p>
+                    </div>
+                    <!-- Use for writing button -->
+                    <button @click="useResearchForWriting()" class="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700">
+                        <i class="fas fa-arrow-right"></i> Use for Auto-Write →
+                    </button>
                 </div>
-                <div x-show="!genResult && !loading" class="bg-white rounded-lg shadow p-12 text-center text-gray-400">
-                    <i class="fas fa-robot text-4xl mb-3"></i>
-                    <p>Configure settings and click Generate to create SEO content</p>
+                <div x-show="!researchResult && !loading" class="bg-white rounded-lg shadow p-12 text-center text-gray-400">
+                    <i class="fas fa-search text-4xl mb-3"></i><p>Enter a keyword to start research</p>
                 </div>
             </div>
         </div>
     </div>
 
 
-    <!-- Optimize Content Tab -->
-    <div x-show="tab==='optimize'" x-cloak>
+    <!-- ============ TAB 2: AUTO WRITE ============ -->
+    <div x-show="tab==='write'" x-cloak>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-4"><i class="fas fa-pen-fancy text-purple-500"></i> Auto Article Writer</h3>
+                <form @submit.prevent="autoWrite()" class="space-y-3">
+                    <input type="text" x-model="writeForm.topic" placeholder="Article topic/title" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    <input type="text" x-model="writeForm.keyword" placeholder="Primary keyword" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    <input type="text" x-model="writeForm.secondary_keywords" placeholder="Secondary keywords (comma separated)" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select x-model="writeForm.tone" class="border rounded-lg px-3 py-2 text-sm">
+                            <option value="professional">Professional</option><option value="conversational">Conversational</option>
+                            <option value="technical">Technical</option><option value="casual">Casual</option>
+                        </select>
+                        <input type="number" x-model="writeForm.word_count" min="500" max="5000" placeholder="Word count" class="border rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select x-model="writeForm.language" class="border rounded-lg px-3 py-2 text-sm">
+                            <option value="en">English</option><option value="vi">Vietnamese</option>
+                            <option value="es">Spanish</option><option value="fr">French</option>
+                        </select>
+                        <input type="text" x-model="writeForm.niche" placeholder="Niche" class="border rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <select x-model="writeForm.model_id" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <template x-for="m in models" :key="m.model_id"><option :value="m.model_id" x-text="m.display_name"></option></template>
+                    </select>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="writeForm.skip_research" class="rounded"> Skip keyword research</label>
+                    <button type="submit" :disabled="loading" class="w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium">
+                        <i class="fas fa-robot"></i> <span x-text="loading ? 'Writing (4 stages)...' : 'Auto-Write Article'"></span>
+                    </button>
+                    <button type="button" @click="generateOutline()" :disabled="loading" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50 text-sm">
+                        <i class="fas fa-list"></i> Generate Outline Only
+                    </button>
+                </form>
+                <!-- Pipeline Progress -->
+                <div x-show="loading" class="mt-4 space-y-2">
+                    <p class="text-xs text-gray-500 font-medium">Pipeline Progress:</p>
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 text-xs" :class="writeResult?.stages_completed?.includes('research') ? 'text-green-600' : 'text-gray-400'"><i class="fas" :class="writeResult?.stages_completed?.includes('research') ? 'fa-check-circle' : 'fa-circle'"></i> Research</div>
+                        <div class="flex items-center gap-2 text-xs" :class="writeResult?.stages_completed?.includes('outline') ? 'text-green-600' : 'text-gray-400'"><i class="fas" :class="writeResult?.stages_completed?.includes('outline') ? 'fa-check-circle' : 'fa-circle'"></i> Outline</div>
+                        <div class="flex items-center gap-2 text-xs" :class="writeResult?.stages_completed?.includes('draft') ? 'text-green-600' : 'text-gray-400'"><i class="fas" :class="writeResult?.stages_completed?.includes('draft') ? 'fa-check-circle' : 'fa-circle'"></i> Draft</div>
+                        <div class="flex items-center gap-2 text-xs" :class="writeResult?.stages_completed?.includes('optimize') ? 'text-green-600' : 'text-gray-400'"><i class="fas" :class="writeResult?.stages_completed?.includes('optimize') ? 'fa-check-circle' : 'fa-circle'"></i> Optimize</div>
+                    </div>
+                </div>
+            </div>
+            <div class="lg:col-span-2 space-y-4">
+                <div x-show="writeResult" x-cloak class="bg-white rounded-lg shadow p-6">
+                    <!-- Stats -->
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b">
+                        <div class="flex gap-4 text-sm">
+                            <span class="text-gray-500">Words: <b x-text="writeResult?.final_word_count || writeResult?.draft_word_count"></b></span>
+                            <span class="text-gray-500">SEO: <b :class="(writeResult?.seo_score||0)>=80?'text-green-600':'text-yellow-600'" x-text="(writeResult?.seo_score||0)+'/100'"></b></span>
+                            <span class="text-gray-500">Time: <b x-text="writeResult?.total_time_sec+'s'"></b></span>
+                            <span :class="writeResult?.pipeline_complete?'text-green-600':'text-yellow-600'" x-text="writeResult?.pipeline_complete?'Complete':'Partial'"></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="copyToClipboard(writeResult?.final_content || writeResult?.raw_draft)" class="text-xs text-blue-600 hover:text-blue-800"><i class="fas fa-copy"></i> Copy</button>
+                            <button @click="sendToEditor()" class="text-xs text-green-600 hover:text-green-800"><i class="fas fa-edit"></i> Edit</button>
+                            <button @click="sendToTest()" class="text-xs text-orange-600 hover:text-orange-800"><i class="fas fa-flask"></i> Test</button>
+                        </div>
+                    </div>
+                    <!-- Meta -->
+                    <div x-show="writeResult?.meta_title" class="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
+                        <p><b>Title:</b> <span x-text="writeResult?.meta_title"></span></p>
+                        <p><b>Description:</b> <span x-text="writeResult?.meta_description"></span></p>
+                        <p><b>Slug:</b> <span class="text-blue-600" x-text="'/' + writeResult?.slug"></span></p>
+                    </div>
+                    <!-- Content -->
+                    <div class="prose max-w-none text-sm leading-relaxed max-h-[600px] overflow-y-auto whitespace-pre-wrap" x-text="writeResult?.final_content || writeResult?.raw_draft"></div>
+                </div>
+                <div x-show="!writeResult && !loading" class="bg-white rounded-lg shadow p-12 text-center text-gray-400">
+                    <i class="fas fa-pen-fancy text-4xl mb-3"></i><p>Configure and click Auto-Write to generate a full article</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ============ TAB 3: EDIT & OPTIMIZE ============ -->
+    <div x-show="tab==='edit'" x-cloak>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-semibold mb-4">Paste Content to Optimize</h3>
-                <form @submit.prevent="optimizeContent()" class="space-y-3">
-                    <textarea x-model="optForm.content" rows="10" placeholder="Paste your existing content here..." class="w-full border rounded-lg px-3 py-2 text-sm" required></textarea>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" x-model="optForm.keyword" placeholder="Target keyword" class="border rounded-lg px-3 py-2 text-sm" required>
-                        <input type="text" x-model="optForm.secondary_keywords" placeholder="Secondary keywords" class="border rounded-lg px-3 py-2 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">AI Model</label>
-                        <select x-model="optForm.model_id" @change="updateOptProvider()" class="w-full border rounded-lg px-3 py-2 text-sm">
-                            <template x-for="m in models" :key="m.model_id">
-                                <option :value="m.model_id" x-text="m.display_name"></option>
-                            </template>
-                        </select>
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="submit" :disabled="loading" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium">
-                            <i class="fas fa-search"></i> Analyze
-                        </button>
-                        <button type="button" @click="improveContent()" :disabled="loading" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium">
-                            <i class="fas fa-magic"></i> Auto-Improve
-                        </button>
-                    </div>
-                </form>
+                <h3 class="font-semibold mb-4"><i class="fas fa-edit text-green-500"></i> Content Editor</h3>
+                <textarea x-model="editForm.content" rows="12" placeholder="Paste content to edit/optimize..." class="w-full border rounded-lg px-3 py-2 text-sm mb-3" required></textarea>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <input type="text" x-model="editForm.keyword" placeholder="Target keyword" class="border rounded-lg px-3 py-2 text-sm" required>
+                    <input type="text" x-model="editForm.secondary_keywords" placeholder="Secondary keywords" class="border rounded-lg px-3 py-2 text-sm">
+                </div>
+                <select x-model="editForm.model_id" class="w-full border rounded-lg px-3 py-2 text-sm mb-3">
+                    <template x-for="m in models" :key="m.model_id"><option :value="m.model_id" x-text="m.display_name"></option></template>
+                </select>
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button @click="editorAction('rewrite')" :disabled="loading" class="bg-green-600 text-white py-2 rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-50">
+                        <i class="fas fa-sync"></i> Rewrite
+                    </button>
+                    <button @click="editorAction('readability')" :disabled="loading" class="bg-blue-600 text-white py-2 rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50">
+                        <i class="fas fa-glasses"></i> Readability
+                    </button>
+                    <button @click="editorAction('fix-seo')" :disabled="loading" class="bg-red-600 text-white py-2 rounded-lg text-xs font-medium hover:bg-red-700 disabled:opacity-50">
+                        <i class="fas fa-wrench"></i> Fix SEO
+                    </button>
+                    <button @click="editorAction('expand')" :disabled="loading" class="bg-purple-600 text-white py-2 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:opacity-50">
+                        <i class="fas fa-expand"></i> Expand
+                    </button>
+                </div>
+                <button @click="editorAction('ab')" :disabled="loading" class="mt-2 w-full bg-yellow-600 text-white py-2 rounded-lg text-xs font-medium hover:bg-yellow-700 disabled:opacity-50">
+                    <i class="fas fa-vials"></i> Generate A/B Variations
+                </button>
             </div>
             <div class="bg-white rounded-lg shadow p-6">
-                <div x-show="optResult" x-cloak>
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-semibold">Optimization Results</h3>
-                        <span class="text-2xl font-bold" :class="optResult?.overall_score >= 80 ? 'text-green-600' : optResult?.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'" x-text="optResult?.overall_score + '/100'"></span>
+                <div x-show="editResult" x-cloak>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Edited Content</h3>
+                        <div class="flex gap-2 text-xs">
+                            <span class="text-gray-500" x-text="editResult?.original_word_count + ' → ' + editResult?.edited_word_count + ' words'"></span>
+                            <button @click="copyToClipboard(editResult?.edited_content)" class="text-blue-600"><i class="fas fa-copy"></i></button>
+                            <button @click="editForm.content = editResult?.edited_content" class="text-green-600"><i class="fas fa-check"></i> Apply</button>
+                        </div>
                     </div>
-
-                    <!-- Meta suggestions -->
-                    <div x-show="optResult?.rewritten_meta_title" class="mb-4 p-3 bg-green-50 rounded-lg text-sm">
-                        <p class="font-medium text-green-800 mb-1">Suggested Meta:</p>
-                        <p class="text-green-700">Title: <span x-text="optResult?.rewritten_meta_title"></span></p>
-                        <p class="text-green-700">Desc: <span x-text="optResult?.rewritten_meta_description"></span></p>
+                    <!-- Operations performed -->
+                    <div x-show="editResult?.operations_performed?.length" class="mb-3 p-3 bg-green-50 rounded-lg">
+                        <template x-for="op in editResult?.operations_performed"><div class="text-xs text-green-700"><b x-text="op.type"></b>: <span x-text="op.changes?.join(', ')"></span></div></template>
                     </div>
-                    <!-- Improvements list -->
-                    <div class="space-y-2 max-h-96 overflow-y-auto">
-                        <template x-for="imp in optResult?.improvements || []" :key="imp.issue">
-                            <div class="p-3 rounded-lg text-sm" :class="imp.priority==='high' ? 'bg-red-50' : imp.priority==='medium' ? 'bg-yellow-50' : 'bg-blue-50'">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium" :class="imp.priority==='high' ? 'bg-red-200 text-red-800' : imp.priority==='medium' ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-200 text-blue-800'" x-text="imp.priority"></span>
-                                    <span class="px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-700" x-text="imp.category"></span>
-                                </div>
-                                <p class="font-medium text-gray-800" x-text="imp.issue"></p>
-                                <p class="text-gray-600 mt-0.5" x-text="imp.suggestion"></p>
-                                <p x-show="imp.example" class="text-gray-500 italic mt-0.5 text-xs" x-text="imp.example"></p>
+                    <!-- SEO Issues Fixed -->
+                    <div x-show="editResult?.seo_issues_fixed?.length" class="mb-3 p-3 bg-red-50 rounded-lg">
+                        <p class="text-xs font-medium text-red-700 mb-1">Issues Fixed:</p>
+                        <template x-for="issue in editResult?.seo_issues_fixed"><p class="text-xs text-red-600" x-text="'✓ ' + issue"></p></template>
+                    </div>
+                    <!-- A/B Variations -->
+                    <div x-show="editResult?.ab_variations?.length" class="mb-3 space-y-2">
+                        <p class="text-xs font-medium text-gray-700">A/B Variations:</p>
+                        <template x-for="(v, i) in editResult?.ab_variations" :key="i">
+                            <div class="p-2 bg-yellow-50 rounded border text-xs">
+                                <p class="font-medium" x-text="'Variation ' + (v.id || (i+1))"></p>
+                                <p class="text-gray-700" x-text="v.content"></p>
+                                <p class="text-gray-500 italic" x-text="v.strategy"></p>
                             </div>
                         </template>
                     </div>
-                    <!-- Content gaps -->
-                    <div x-show="optResult?.content_gaps?.length" class="mt-4 p-3 bg-purple-50 rounded-lg">
-                        <h4 class="text-sm font-semibold text-purple-800 mb-2">Content Gaps</h4>
-                        <ul class="text-xs text-purple-700 space-y-1">
-                            <template x-for="g in optResult?.content_gaps"><li x-text="'- ' + g"></li></template>
-                        </ul>
-                    </div>
-                    <!-- Improved content (from auto-improve) -->
-                    <div x-show="optResult?.improved_content" class="mt-4">
-                        <h4 class="text-sm font-semibold mb-2">Improved Content:</h4>
-                        <div class="bg-gray-50 rounded-lg p-3 text-sm max-h-64 overflow-y-auto whitespace-pre-wrap" x-text="optResult?.improved_content"></div>
-                    </div>
+                    <!-- Edited Content Preview -->
+                    <div class="prose max-w-none text-sm max-h-96 overflow-y-auto whitespace-pre-wrap border rounded-lg p-3 bg-gray-50" x-text="editResult?.edited_content"></div>
                 </div>
-                <div x-show="!optResult && !loading" class="text-center text-gray-400 py-12">
-                    <i class="fas fa-magic text-3xl mb-2"></i>
-                    <p class="text-sm">Paste content and analyze for optimization</p>
+                <div x-show="!editResult && !loading" class="text-center text-gray-400 py-12">
+                    <i class="fas fa-edit text-3xl mb-2"></i><p class="text-sm">Choose an edit action to optimize content</p>
                 </div>
             </div>
         </div>
     </div>
 
 
-    <!-- Title Generator Tab -->
-    <div x-show="tab==='titles'" x-cloak>
+    <!-- ============ TAB 4: TEST & QA ============ -->
+    <div x-show="tab==='test'" x-cloak>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-semibold mb-4">Generate Title Ideas</h3>
-                <form @submit.prevent="generateTitles()" class="space-y-3">
-                    <input type="text" x-model="titleForm.topic" placeholder="Topic or subject" class="w-full border rounded-lg px-3 py-2 text-sm" required>
-                    <input type="text" x-model="titleForm.keyword" placeholder="Target keyword" class="w-full border rounded-lg px-3 py-2 text-sm" required>
-                    <select x-model="titleForm.content_type" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="article">Article</option>
-                        <option value="blog_post">Blog Post</option>
-                        <option value="guide">Guide</option>
-                        <option value="listicle">Listicle</option>
-                    </select>
-                    <select x-model="titleForm.model_id" @change="updateTitleProvider()" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <template x-for="m in models" :key="m.model_id"><option :value="m.model_id" x-text="m.display_name"></option></template>
-                    </select>
-                    <button type="submit" :disabled="loading" class="w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50 text-sm font-medium">
-                        <i class="fas fa-heading"></i> Generate 10 Titles
-                    </button>
+                <h3 class="font-semibold mb-4"><i class="fas fa-flask text-orange-500"></i> Content Testing</h3>
+                <form @submit.prevent="testContent()" class="space-y-3">
+                    <textarea x-model="testForm.content" rows="8" placeholder="Paste content to test..." class="w-full border rounded-lg px-3 py-2 text-sm" required></textarea>
+                    <input type="text" x-model="testForm.keyword" placeholder="Primary keyword" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    <input type="text" x-model="testForm.secondary_keywords" placeholder="Secondary keywords" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <input type="text" x-model="testForm.meta_title" placeholder="Meta title (optional)" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <input type="text" x-model="testForm.meta_description" placeholder="Meta description (optional)" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <div class="flex gap-2">
+                        <button type="submit" :disabled="loading" class="flex-1 bg-orange-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-orange-700 disabled:opacity-50">
+                            <i class="fas fa-flask"></i> Full Test (AI)
+                        </button>
+                        <button type="button" @click="quickTest()" class="flex-1 bg-gray-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-700">
+                            <i class="fas fa-bolt"></i> Quick Test
+                        </button>
+                    </div>
                 </form>
             </div>
-            <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
-                <h3 class="font-semibold mb-4">Title Suggestions</h3>
-                <div x-show="titleResult?.title_suggestions?.length" class="space-y-2">
-                    <template x-for="(title, i) in titleResult?.title_suggestions || []" :key="i">
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer" @click="copyText(title)">
-                            <span class="text-sm" x-text="(i+1) + '. ' + title"></span>
-                            <span class="text-xs text-gray-400" x-text="title.length + ' chars'"></span>
+            <div class="lg:col-span-2 space-y-4">
+                <div x-show="testResult" x-cloak>
+                    <!-- Grade & Status -->
+                    <div class="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold"
+                                 :class="{'A':'bg-green-100 text-green-700','B':'bg-blue-100 text-blue-700','C':'bg-yellow-100 text-yellow-700','D':'bg-orange-100 text-orange-700','F':'bg-red-100 text-red-700'}[testResult?.overall_grade] || 'bg-gray-100'"
+                                 x-text="testResult?.overall_grade"></div>
+                            <div>
+                                <p class="font-semibold text-lg" x-text="testResult?.publish_ready ? 'Ready to Publish!' : 'Needs Improvement'"></p>
+                                <p class="text-sm text-gray-500" x-text="'SEO Score: ' + (testResult?.seo_score?.overall || 0) + '/100'"></p>
+                            </div>
                         </div>
-                    </template>
-                </div>
-                <p x-show="!titleResult?.title_suggestions?.length && !loading" class="text-gray-400 text-center py-8"><i class="fas fa-heading text-3xl mb-2"></i><br>Generate title ideas above</p>
-            </div>
-        </div>
-    </div>
+                        <div :class="testResult?.publish_ready ? 'text-green-600' : 'text-red-600'">
+                            <i class="fas text-3xl" :class="testResult?.publish_ready ? 'fa-check-circle' : 'fa-exclamation-triangle'"></i>
+                        </div>
+                    </div>
 
+                    <!-- Score Breakdown -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h4 class="font-semibold mb-3">Score Breakdown</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <div class="text-center p-3 rounded-lg bg-gray-50">
+                                <p class="text-xl font-bold" :class="(testResult?.seo_score?.keyword||0)>=20?'text-green-600':'text-red-600'" x-text="(testResult?.seo_score?.keyword||0)+'/25'"></p>
+                                <p class="text-xs text-gray-500">Keyword</p>
+                            </div>
+                            <div class="text-center p-3 rounded-lg bg-gray-50">
+                                <p class="text-xl font-bold" :class="(testResult?.seo_score?.structure||0)>=15?'text-green-600':'text-yellow-600'" x-text="(testResult?.seo_score?.structure||0)+'/20'"></p>
+                                <p class="text-xs text-gray-500">Structure</p>
+                            </div>
+                            <div class="text-center p-3 rounded-lg bg-gray-50">
+                                <p class="text-xl font-bold" :class="(testResult?.seo_score?.meta||0)>=15?'text-green-600':'text-yellow-600'" x-text="(testResult?.seo_score?.meta||0)+'/20'"></p>
+                                <p class="text-xs text-gray-500">Meta</p>
+                            </div>
+                            <div class="text-center p-3 rounded-lg bg-gray-50">
+                                <p class="text-xl font-bold" x-text="(testResult?.seo_score?.readability||0)+'/15'"></p>
+                                <p class="text-xs text-gray-500">Readability</p>
+                            </div>
+                            <div class="text-center p-3 rounded-lg bg-gray-50">
+                                <p class="text-xl font-bold" x-text="(testResult?.seo_score?.engagement||0)+'/10'"></p>
+                                <p class="text-xs text-gray-500">Engagement</p>
+                            </div>
+                            <div class="text-center p-3 rounded-lg bg-gray-50">
+                                <p class="text-xl font-bold" x-text="(testResult?.seo_score?.technical||0)+'/10'"></p>
+                                <p class="text-xs text-gray-500">Technical</p>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Compare Models Tab -->
-    <div x-show="tab==='compare'" x-cloak>
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 class="font-semibold mb-4">Compare AI Models Side-by-Side</h3>
-            <form @submit.prevent="compareModels()" class="space-y-3">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <input type="text" x-model="compareForm.topic" placeholder="Topic" class="border rounded-lg px-3 py-2 text-sm" required>
-                    <input type="text" x-model="compareForm.keyword" placeholder="Target keyword" class="border rounded-lg px-3 py-2 text-sm" required>
-                    <input type="number" x-model="compareForm.word_count" placeholder="Word count" class="border rounded-lg px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-2">Select Models to Compare (2-4):</label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <template x-for="m in models" :key="m.model_id">
-                            <label class="flex items-center gap-2 p-2 border rounded-lg text-xs cursor-pointer hover:bg-gray-50" :class="compareForm.selectedModels.includes(m.model_id) && 'border-purple-400 bg-purple-50'">
-                                <input type="checkbox" :value="m.model_id" x-model="compareForm.selectedModels" class="rounded">
-                                <span x-text="m.display_name"></span>
-                            </label>
+                    <!-- Pass/Fail Checks -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h4 class="font-semibold mb-3">SEO Checklist</h4>
+                        <div class="space-y-1 max-h-48 overflow-y-auto">
+                            <template x-for="check in testResult?.seo_score?.pass_fail_checks || []" :key="check.check">
+                                <div class="flex items-center gap-2 text-sm py-1">
+                                    <i class="fas text-xs" :class="check.passed ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'"></i>
+                                    <span :class="check.passed ? 'text-gray-700' : 'text-red-700'" x-text="check.check"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Keyword Audit -->
+                    <div x-show="testResult?.keyword_audit?.length" class="bg-white rounded-lg shadow p-6">
+                        <h4 class="font-semibold mb-3">Keyword Placement Audit</h4>
+                        <template x-for="kw in testResult?.keyword_audit" :key="kw.keyword">
+                            <div class="mb-3 p-3 rounded-lg bg-gray-50">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-medium text-sm" x-text="kw.keyword"></span>
+                                    <span class="text-sm font-bold" :class="kw.score>=70?'text-green-600':'text-red-600'" x-text="kw.score+'/100'"></span>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-xs">
+                                    <span :class="kw.in_title?'bg-green-100 text-green-700':'bg-red-100 text-red-700'" class="px-2 py-0.5 rounded">Title</span>
+                                    <span :class="kw.in_first_paragraph?'bg-green-100 text-green-700':'bg-red-100 text-red-700'" class="px-2 py-0.5 rounded">First Para</span>
+                                    <span :class="kw.in_headings?'bg-green-100 text-green-700':'bg-red-100 text-red-700'" class="px-2 py-0.5 rounded">Headings</span>
+                                    <span class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded" x-text="'Density: '+kw.density+'%'"></span>
+                                    <span class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded" x-text="'Count: '+kw.count"></span>
+                                </div>
+                                <div x-show="kw.suggestions?.length" class="mt-2">
+                                    <template x-for="s in kw.suggestions"><p class="text-xs text-red-600" x-text="'→ '+s"></p></template>
+                                </div>
+                            </div>
                         </template>
                     </div>
-                </div>
-                <button type="submit" :disabled="loading || compareForm.selectedModels.length < 2" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm font-medium">
-                    <i class="fas fa-balance-scale"></i> Compare (<span x-text="compareForm.selectedModels.length"></span> models)
-                </button>
-            </form>
-        </div>
-        <!-- Comparison Results -->
-        <div x-show="compareResults?.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <template x-for="(r, i) in compareResults || []" :key="i">
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="flex items-center justify-between mb-3 pb-2 border-b">
-                        <span class="font-medium text-sm" x-text="r.model_used"></span>
-                        <div class="flex gap-3 text-xs text-gray-500">
-                            <span>SEO: <b :class="(r.seo_score||0)>=80?'text-green-600':'text-yellow-600'" x-text="r.seo_score"></b></span>
-                            <span x-text="r.word_count + ' words'"></span>
-                            <span x-text="r.generation_time_sec + 's'"></span>
+
+                    <!-- Critical Issues & Warnings -->
+                    <div x-show="testResult?.critical_issues?.length || testResult?.warnings?.length" class="bg-white rounded-lg shadow p-6">
+                        <div x-show="testResult?.critical_issues?.length" class="mb-3">
+                            <h4 class="text-sm font-medium text-red-700 mb-2"><i class="fas fa-exclamation-circle"></i> Critical Issues</h4>
+                            <template x-for="i in testResult?.critical_issues"><p class="text-xs text-red-600 py-0.5" x-text="'• '+i"></p></template>
+                        </div>
+                        <div x-show="testResult?.warnings?.length">
+                            <h4 class="text-sm font-medium text-yellow-700 mb-2"><i class="fas fa-exclamation-triangle"></i> Warnings</h4>
+                            <template x-for="w in testResult?.warnings"><p class="text-xs text-yellow-600 py-0.5" x-text="'• '+w"></p></template>
                         </div>
                     </div>
-                    <div class="text-xs max-h-64 overflow-y-auto whitespace-pre-wrap text-gray-700" x-text="r.content?.substring(0, 1000) + (r.content?.length > 1000 ? '...' : '')"></div>
+
+                    <!-- Readability -->
+                    <div x-show="testResult?.readability" class="bg-white rounded-lg shadow p-6">
+                        <h4 class="font-semibold mb-3">Readability</h4>
+                        <div class="grid grid-cols-3 gap-3 text-center text-sm">
+                            <div><p class="font-bold text-lg" x-text="testResult?.readability?.flesch_score"></p><p class="text-xs text-gray-500">Flesch Score</p></div>
+                            <div><p class="font-bold" x-text="testResult?.readability?.grade_level"></p><p class="text-xs text-gray-500">Grade Level</p></div>
+                            <div><p class="font-bold" x-text="testResult?.readability?.avg_sentence_length"></p><p class="text-xs text-gray-500">Avg Sentence</p></div>
+                        </div>
+                    </div>
                 </div>
-            </template>
+                <div x-show="!testResult && !loading" class="bg-white rounded-lg shadow p-12 text-center text-gray-400">
+                    <i class="fas fa-flask text-4xl mb-3"></i><p>Paste content and run tests</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 
 <script>
-function aiWriter() {
+function aiStudio() {
     return {
-        tab: 'generate', loading: false, models: [],
-        form: { topic:'', keyword:'', content_type:'article', secondary_keywords:'', word_count:1500, tone:'professional', audience:'general', language:'en', instructions:'', provider:'openai', model_id:'gpt-4o-mini', temperature:0.7, max_tokens:4096 },
-        optForm: { content:'', keyword:'', secondary_keywords:'', provider:'openai', model_id:'gpt-4o-mini' },
-        titleForm: { topic:'', keyword:'', content_type:'article', language:'en', provider:'openai', model_id:'gpt-4o-mini' },
-        compareForm: { topic:'', keyword:'', word_count:1000, selectedModels:[] },
-        genResult: null, optResult: null, titleResult: null, compareResults: [],
+        tab: 'research', loading: false, models: [],
+        // Forms
+        researchForm: { keyword:'', niche:'general', market:'global', language:'en', model_id:'gpt-4o-mini', provider:'openai' },
+        writeForm: { topic:'', keyword:'', secondary_keywords:'', word_count:1500, tone:'professional', audience:'general', language:'en', niche:'general', skip_research:false, model_id:'gpt-4o-mini', provider:'openai' },
+        editForm: { content:'', keyword:'', secondary_keywords:'', model_id:'gpt-4o-mini', provider:'openai' },
+        testForm: { content:'', keyword:'', secondary_keywords:'', meta_title:'', meta_description:'', url:'', model_id:'gpt-4o-mini', provider:'openai' },
+        // Results
+        researchResult: null, writeResult: null, editResult: null, testResult: null,
 
         async loadModels() {
-            try {
-                const res = await fetch('/api/v1/ai/models');
-                const json = await res.json();
-                if (json.success) this.models = json.data.models;
-            } catch(e) { console.error('Failed to load models', e); }
+            try { const r = await fetch('/api/v1/ai/models'); const j = await r.json(); if(j.success) this.models = j.data.models; } catch(e) {}
         },
-        updateProvider() {
-            const m = this.models.find(x => x.model_id === this.form.model_id);
-            if (m) this.form.provider = m.provider;
-        },
-        updateOptProvider() {
-            const m = this.models.find(x => x.model_id === this.optForm.model_id);
-            if (m) this.optForm.provider = m.provider;
-        },
-        updateTitleProvider() {
-            const m = this.models.find(x => x.model_id === this.titleForm.model_id);
-            if (m) this.titleForm.provider = m.provider;
-        },
-        async generateContent() {
-            this.loading = true; this.genResult = null;
-            try {
-                const res = await fetch('/api/v1/ai/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(this.form) });
-                const json = await res.json();
-                if (json.success) this.genResult = json.data;
-                else alert(json.detail || 'Failed');
-            } catch(e) { alert('Error: '+e.message); }
+        getProvider(modelId) { const m = this.models.find(x=>x.model_id===modelId); return m?.provider || 'openai'; },
+
+        // Research
+        async researchKeyword() {
+            this.loading = true; this.researchResult = null;
+            const body = {...this.researchForm, provider: this.getProvider(this.researchForm.model_id)};
+            try { const r = await fetch('/api/v1/ai/research/keyword',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const j=await r.json(); if(j.success) this.researchResult=j.data; else alert(j.detail||'Failed'); } catch(e){alert(e.message);}
             this.loading = false;
         },
-        async optimizeContent() {
-            this.loading = true; this.optResult = null;
-            try {
-                const res = await fetch('/api/v1/ai/optimize/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(this.optForm) });
-                const json = await res.json();
-                if (json.success) this.optResult = json.data;
-                else alert(json.detail || 'Failed');
-            } catch(e) { alert('Error: '+e.message); }
+        useResearchForWriting() {
+            this.writeForm.keyword = this.researchResult?.primary_keyword || '';
+            this.writeForm.topic = this.researchResult?.recommended_strategy?.primary_target || this.researchResult?.primary_keyword || '';
+            const related = this.researchResult?.related_keywords?.slice(0,3).map(k=>k.keyword).join(', ') || '';
+            this.writeForm.secondary_keywords = related;
+            this.writeForm.word_count = this.researchResult?.recommended_strategy?.estimated_word_count || 1500;
+            this.writeForm.skip_research = true;
+            this.tab = 'write';
+        },
+
+        // Auto Write
+        async autoWrite() {
+            this.loading = true; this.writeResult = null;
+            const body = {...this.writeForm, provider: this.getProvider(this.writeForm.model_id)};
+            try { const r = await fetch('/api/v1/ai/auto-write',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const j=await r.json(); if(j.success) this.writeResult=j.data; else alert(j.detail||'Failed'); } catch(e){alert(e.message);}
             this.loading = false;
         },
-        async improveContent() {
-            this.loading = true; this.optResult = null;
-            try {
-                const res = await fetch('/api/v1/ai/optimize/improve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ content:this.optForm.content, keyword:this.optForm.keyword, secondary_keywords:this.optForm.secondary_keywords, provider:this.optForm.provider, model_id:this.optForm.model_id }) });
-                const json = await res.json();
-                if (json.success) this.optResult = json.data;
-                else alert(json.detail || 'Failed');
-            } catch(e) { alert('Error: '+e.message); }
+        async generateOutline() {
+            this.loading = true; this.writeResult = null;
+            const body = {...this.writeForm, provider: this.getProvider(this.writeForm.model_id)};
+            try { const r = await fetch('/api/v1/ai/auto-write/outline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const j=await r.json(); if(j.success) this.writeResult=j.data; else alert(j.detail||'Failed'); } catch(e){alert(e.message);}
             this.loading = false;
         },
-        async generateTitles() {
-            this.loading = true; this.titleResult = null;
-            try {
-                const res = await fetch('/api/v1/ai/optimize/titles', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(this.titleForm) });
-                const json = await res.json();
-                if (json.success) this.titleResult = json.data;
-            } catch(e) { alert('Error: '+e.message); }
+        sendToEditor() { this.editForm.content = this.writeResult?.final_content || this.writeResult?.raw_draft || ''; this.editForm.keyword = this.writeForm.keyword; this.tab = 'edit'; },
+        sendToTest() { this.testForm.content = this.writeResult?.final_content || this.writeResult?.raw_draft || ''; this.testForm.keyword = this.writeForm.keyword; this.testForm.meta_title = this.writeResult?.meta_title || ''; this.testForm.meta_description = this.writeResult?.meta_description || ''; this.tab = 'test'; },
+
+        // Editor
+        async editorAction(action) {
+            this.loading = true; this.editResult = null;
+            const provider = this.getProvider(this.editForm.model_id);
+            let url = '', body = {};
+            switch(action) {
+                case 'rewrite': url='/api/v1/ai/editor/rewrite'; body={content:this.editForm.content, keyword:this.editForm.keyword, provider, model_id:this.editForm.model_id}; break;
+                case 'readability': url='/api/v1/ai/editor/readability'; body={content:this.editForm.content, provider, model_id:this.editForm.model_id}; break;
+                case 'fix-seo': url='/api/v1/ai/editor/fix-seo'; body={content:this.editForm.content, keyword:this.editForm.keyword, secondary_keywords:this.editForm.secondary_keywords, provider, model_id:this.editForm.model_id}; break;
+                case 'expand': url='/api/v1/ai/editor/expand'; body={content:this.editForm.content, keyword:this.editForm.keyword, provider, model_id:this.editForm.model_id}; break;
+                case 'ab': url='/api/v1/ai/editor/ab-variations'; body={original:this.editForm.content.split('\n')[0]||this.editForm.content.slice(0,100), keyword:this.editForm.keyword, element_type:'title', provider, model_id:this.editForm.model_id}; break;
+            }
+            try { const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const j=await r.json(); if(j.success) this.editResult=j.data; else alert(j.detail||'Failed'); } catch(e){alert(e.message);}
             this.loading = false;
         },
-        async compareModels() {
-            this.loading = true; this.compareResults = [];
-            const models = this.compareForm.selectedModels.map(id => { const m = this.models.find(x=>x.model_id===id); return {provider:m?.provider||'openai', model_id:id}; });
-            try {
-                const res = await fetch('/api/v1/ai/generate/compare', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ topic:this.compareForm.topic, keyword:this.compareForm.keyword, word_count:this.compareForm.word_count, models }) });
-                const json = await res.json();
-                if (json.success) this.compareResults = json.data.results;
-            } catch(e) { alert('Error: '+e.message); }
+
+        // Test
+        async testContent() {
+            this.loading = true; this.testResult = null;
+            const body = {...this.testForm, provider: this.getProvider(this.testForm.model_id)};
+            try { const r = await fetch('/api/v1/ai/test/full',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const j=await r.json(); if(j.success) this.testResult=j.data; else alert(j.detail||'Failed'); } catch(e){alert(e.message);}
             this.loading = false;
         },
-        copyContent() { navigator.clipboard.writeText(this.genResult?.content || ''); },
-        copyText(t) { navigator.clipboard.writeText(t); }
+        async quickTest() {
+            this.testResult = null;
+            const body = {content:this.testForm.content, keyword:this.testForm.keyword, secondary_keywords:this.testForm.secondary_keywords, meta_title:this.testForm.meta_title, meta_description:this.testForm.meta_description};
+            try { const r = await fetch('/api/v1/ai/test/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const j=await r.json(); if(j.success) this.testResult=j.data; } catch(e){alert(e.message);}
+        },
+
+        copyToClipboard(text) { navigator.clipboard.writeText(text||''); }
     }
 }
 </script>

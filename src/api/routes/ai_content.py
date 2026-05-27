@@ -220,3 +220,361 @@ async def generate_titles(request: AITitleRequest):
         raise HTTPException(status_code=500, detail=result.error or "Title generation failed")
 
     return ApiResponse(success=True, data=result.to_dict())
+
+
+
+# ========================================
+# New Feature Routes: Research, Auto-Write, Edit, Test
+# ========================================
+
+# ---- Additional Request Schemas ----
+
+class KeywordResearchRequest(BaseModel):
+    keyword: str
+    niche: str = "general"
+    market: str = "global"
+    language: str = "en"
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class SERPAnalysisRequest(BaseModel):
+    keyword: str
+    market: str = "global"
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class KeywordClusterRequest(BaseModel):
+    keywords: List[str]
+    niche: str = "general"
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class AutoWriteRequest(BaseModel):
+    topic: str
+    keyword: str
+    secondary_keywords: str = ""
+    word_count: int = 1500
+    tone: str = "professional"
+    audience: str = "general"
+    language: str = "en"
+    niche: str = "general"
+    skip_research: bool = False
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class AutoOutlineRequest(BaseModel):
+    topic: str
+    keyword: str
+    secondary_keywords: str = ""
+    word_count: int = 1500
+    tone: str = "professional"
+    audience: str = "general"
+    language: str = "en"
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class EditorRewriteRequest(BaseModel):
+    content: str
+    keyword: str
+    goals: str = "Improve readability and SEO"
+    tone: str = "professional"
+    language: str = "en"
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class EditorReadabilityRequest(BaseModel):
+    content: str
+    reading_level: str = "8th grade"
+    language: str = "en"
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class EditorSEOFixRequest(BaseModel):
+    content: str
+    keyword: str
+    secondary_keywords: str = ""
+    issues: Optional[List[str]] = None
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class EditorABRequest(BaseModel):
+    original: str
+    keyword: str
+    element_type: str = "title"
+    goal: str = "Increase CTR"
+    num_variations: int = 3
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class EditorExpandRequest(BaseModel):
+    content: str
+    keyword: str
+    additional_words: int = 300
+    expansion_type: str = "examples and details"
+    language: str = "en"
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class ContentTestRequest(BaseModel):
+    content: str
+    keyword: str
+    secondary_keywords: str = ""
+    meta_title: str = ""
+    meta_description: str = ""
+    url: str = ""
+    provider: str = "openai"
+    model_id: str = "gpt-4o-mini"
+
+
+class ContentTestQuickRequest(BaseModel):
+    content: str
+    keyword: str
+    secondary_keywords: str = ""
+    meta_title: str = ""
+    meta_description: str = ""
+
+
+# ---- Keyword Research Endpoints ----
+
+@router.post("/research/keyword", response_model=ApiResponse)
+async def research_keyword(request: KeywordResearchRequest):
+    """Perform comprehensive keyword research."""
+    from src.ai.keyword_researcher import KeywordResearcher
+
+    researcher = KeywordResearcher(provider=request.provider, model_id=request.model_id)
+    result = await researcher.research(
+        keyword=request.keyword,
+        niche=request.niche,
+        market=request.market,
+        language=request.language,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "Research failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+@router.post("/research/serp", response_model=ApiResponse)
+async def analyze_serp(request: SERPAnalysisRequest):
+    """Analyze SERP landscape for a keyword."""
+    from src.ai.keyword_researcher import KeywordResearcher
+
+    researcher = KeywordResearcher(provider=request.provider, model_id=request.model_id)
+    result = await researcher.analyze_serp(keyword=request.keyword, market=request.market)
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "SERP analysis failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+@router.post("/research/cluster", response_model=ApiResponse)
+async def cluster_keywords(request: KeywordClusterRequest):
+    """Group keywords into topic clusters."""
+    from src.ai.keyword_researcher import KeywordResearcher
+
+    researcher = KeywordResearcher(provider=request.provider, model_id=request.model_id)
+    result = await researcher.cluster_keywords(keywords=request.keywords, niche=request.niche)
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "Clustering failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+# ---- Auto Writer Endpoints ----
+
+@router.post("/auto-write", response_model=ApiResponse)
+async def auto_write_article(request: AutoWriteRequest):
+    """Auto-write a complete article (Research → Outline → Draft → Optimize)."""
+    from src.ai.auto_writer import AutoWriter
+
+    writer = AutoWriter(provider=request.provider, model_id=request.model_id)
+    result = await writer.write_article(
+        topic=request.topic,
+        keyword=request.keyword,
+        secondary_keywords=request.secondary_keywords,
+        word_count=request.word_count,
+        tone=request.tone,
+        audience=request.audience,
+        language=request.language,
+        niche=request.niche,
+        skip_research=request.skip_research,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "Auto-write failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+@router.post("/auto-write/outline", response_model=ApiResponse)
+async def auto_write_outline(request: AutoOutlineRequest):
+    """Create an article outline only (for review before full generation)."""
+    from src.ai.auto_writer import AutoWriter
+
+    writer = AutoWriter(provider=request.provider, model_id=request.model_id)
+    result = await writer.create_outline_only(
+        topic=request.topic,
+        keyword=request.keyword,
+        secondary_keywords=request.secondary_keywords,
+        word_count=request.word_count,
+        tone=request.tone,
+        audience=request.audience,
+        language=request.language,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "Outline generation failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+# ---- Content Editor Endpoints ----
+
+@router.post("/editor/rewrite", response_model=ApiResponse)
+async def editor_rewrite(request: EditorRewriteRequest):
+    """Rewrite a section for better SEO and readability."""
+    from src.ai.content_editor import ContentEditor
+
+    editor = ContentEditor(provider=request.provider, model_id=request.model_id)
+    result = await editor.rewrite_section(
+        section_content=request.content,
+        keyword=request.keyword,
+        goals=request.goals,
+        tone=request.tone,
+        language=request.language,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "Rewrite failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+@router.post("/editor/readability", response_model=ApiResponse)
+async def editor_readability(request: EditorReadabilityRequest):
+    """Improve content readability."""
+    from src.ai.content_editor import ContentEditor
+
+    editor = ContentEditor(provider=request.provider, model_id=request.model_id)
+    result = await editor.improve_readability(
+        content=request.content,
+        reading_level=request.reading_level,
+        language=request.language,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "Readability improvement failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+@router.post("/editor/fix-seo", response_model=ApiResponse)
+async def editor_fix_seo(request: EditorSEOFixRequest):
+    """Auto-detect and fix SEO issues in content."""
+    from src.ai.content_editor import ContentEditor
+
+    editor = ContentEditor(provider=request.provider, model_id=request.model_id)
+    result = await editor.fix_seo_issues(
+        content=request.content,
+        keyword=request.keyword,
+        secondary_keywords=request.secondary_keywords,
+        issues=request.issues,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "SEO fix failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+@router.post("/editor/ab-variations", response_model=ApiResponse)
+async def editor_ab_variations(request: EditorABRequest):
+    """Generate A/B test variations of a content element."""
+    from src.ai.content_editor import ContentEditor
+
+    editor = ContentEditor(provider=request.provider, model_id=request.model_id)
+    result = await editor.generate_ab_variations(
+        original=request.original,
+        keyword=request.keyword,
+        element_type=request.element_type,
+        goal=request.goal,
+        num_variations=request.num_variations,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "A/B generation failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+@router.post("/editor/expand", response_model=ApiResponse)
+async def editor_expand(request: EditorExpandRequest):
+    """Expand content with more detail and examples."""
+    from src.ai.content_editor import ContentEditor
+
+    editor = ContentEditor(provider=request.provider, model_id=request.model_id)
+    result = await editor.expand_content(
+        content=request.content,
+        keyword=request.keyword,
+        additional_words=request.additional_words,
+        expansion_type=request.expansion_type,
+        language=request.language,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "Expansion failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+# ---- Content Testing Endpoints ----
+
+@router.post("/test/full", response_model=ApiResponse)
+async def test_content_full(request: ContentTestRequest):
+    """Run full content test (SEO, readability, plagiarism, SERP preview)."""
+    from src.ai.content_tester import ContentTester
+
+    tester = ContentTester(provider=request.provider, model_id=request.model_id)
+    result = await tester.full_test(
+        content=request.content,
+        keyword=request.keyword,
+        secondary_keywords=request.secondary_keywords,
+        meta_title=request.meta_title,
+        meta_description=request.meta_description,
+        url=request.url,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "Test failed")
+
+    return ApiResponse(success=True, data=result.to_dict())
+
+
+@router.post("/test/quick", response_model=ApiResponse)
+async def test_content_quick(request: ContentTestQuickRequest):
+    """Quick SEO test (instant, no AI calls - just scoring)."""
+    from src.ai.content_tester import ContentTester
+
+    tester = ContentTester()
+    result = tester.test_seo_only(
+        content=request.content,
+        keyword=request.keyword,
+        secondary_keywords=request.secondary_keywords,
+        meta_title=request.meta_title,
+        meta_description=request.meta_description,
+    )
+
+    return ApiResponse(success=True, data=result.to_dict())
