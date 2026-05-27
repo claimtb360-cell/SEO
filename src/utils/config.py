@@ -37,6 +37,21 @@ class Settings(BaseSettings):
     # Ahrefs API
     ahrefs_api_key: Optional[str] = None
 
+    # AI Provider API Keys
+    openai_api_key: Optional[str] = None
+    openai_base_url: Optional[str] = None  # Custom endpoint (e.g., Azure OpenAI)
+    anthropic_api_key: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    mistral_api_key: Optional[str] = None
+    cohere_api_key: Optional[str] = None
+
+    # AI defaults
+    ai_default_provider: str = "openai"
+    ai_default_model: str = "gpt-4o-mini"
+    ai_max_tokens: int = 4096
+    ai_temperature: float = 0.7
+
     # Crawling
     max_concurrent_requests: int = 10
     request_timeout: int = 30

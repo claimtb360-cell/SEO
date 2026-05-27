@@ -46,3 +46,10 @@ async def rank_tracker_page(request: Request):
 async def tools_page(request: Request):
     """SEO tools (generators, checkers) page."""
     return templates.TemplateResponse("tools.html", {"request": request})
+
+
+
+@router.get("/ai-writer", response_class=HTMLResponse)
+async def ai_writer_page(request: Request):
+    """AI content writer page."""
+    return templates.TemplateResponse("ai_writer.html", {"request": request})

@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+{% block title %}AI Content Writer - SEO Tool{% endblock %}
+{% block page_title %}AI Content Writer{% endblock %}
+
+{% block content %}
+<div x-data="aiWriter()" x-init="loadModels()">
+    <!-- Tabs -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="flex border-b overflow-x-auto">
+            <button @click="tab='generate'" :class="tab==='generate' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                <i class="fas fa-pen-fancy mr-1"></i> Generate Content
+            </button>
+            <button @click="tab='optimize'" :class="tab==='optimize' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                <i class="fas fa-magic mr-1"></i> Optimize Content
+            </button>
+            <button @click="tab='titles'" :class="tab==='titles' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                <i class="fas fa-heading mr-1"></i> Title Generator
+            </button>
+            <button @click="tab='compare'" :class="tab==='compare' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                <i class="fas fa-balance-scale mr-1"></i> Compare Models
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Generate Content Tab -->
+    <div x-show="tab==='generate'">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Form -->
+            <div class="lg:col-span-1 bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-4">Content Settings</h3>
+                <form @submit.prevent="generateContent()" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Topic / Title</label>
+                        <input type="text" x-model="form.topic" placeholder="e.g., Best SEO Practices 2025" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Target Keyword</label>
+                        <input type="text" x-model="form.keyword" placeholder="e.g., seo practices" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Secondary Keywords</label>
+                        <input type="text" x-model="form.secondary_keywords" placeholder="keyword1, keyword2" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Content Type</label>
+                            <select x-model="form.content_type" class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <option value="article">Article</option>
+                                <option value="blog_post">Blog Post</option>
+                                <option value="product_description">Product</option>
+                                <option value="meta_tags">Meta Tags</option>
+                                <option value="outline">Outline</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Word Count</label>
+                            <input type="number" x-model="form.word_count" min="100" max="5000" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Tone</label>
+                            <select x-model="form.tone" class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <option value="professional">Professional</option>
+                                <option value="conversational">Conversational</option>
+                                <option value="technical">Technical</option>
+                                <option value="casual">Casual</option>
+                                <option value="formal">Formal</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Language</label>
+                            <select x-model="form.language" class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <option value="en">English</option>
+                                <option value="vi">Vietnamese</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="zh">Chinese</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">AI Model</label>
+                        <select x-model="form.model_id" @change="updateProvider()" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <template x-for="m in models" :key="m.model_id">
+                                <option :value="m.model_id" x-text="m.display_name + ' (' + m.provider + ')'"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Extra Instructions</label>
+                        <textarea x-model="form.instructions" rows="2" placeholder="Any additional instructions..." class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
+                    </div>
+                    <button type="submit" :disabled="loading" class="w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium">
+                        <i class="fas fa-robot mr-1"></i> <span x-text="loading ? 'Generating...' : 'Generate Content'"></span>
+                    </button>
+                </form>
+            </div>
+
+
+            <!-- Result -->
+            <div class="lg:col-span-2 space-y-4">
+                <div x-show="genResult" x-cloak class="bg-white rounded-lg shadow p-6">
+                    <!-- Stats bar -->
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b">
+                        <div class="flex gap-4 text-sm">
+                            <span class="text-gray-500">Words: <b class="text-gray-800" x-text="genResult?.word_count"></b></span>
+                            <span class="text-gray-500">SEO: <b :class="(genResult?.seo_score||0) >= 80 ? 'text-green-600' : 'text-yellow-600'" x-text="(genResult?.seo_score||0) + '/100'"></b></span>
+                            <span class="text-gray-500">Time: <b x-text="genResult?.generation_time_sec + 's'"></b></span>
+                            <span class="text-gray-500">Cost: <b x-text="'$' + (genResult?.estimated_cost||0).toFixed(4)"></b></span>
+                        </div>
+                        <button @click="copyContent()" class="text-sm text-blue-600 hover:text-blue-800"><i class="fas fa-copy"></i> Copy</button>
+                    </div>
+                    <!-- Meta tags -->
+                    <div x-show="genResult?.meta_title" class="mb-4 p-3 bg-gray-50 rounded-lg text-sm space-y-1">
+                        <p><span class="font-medium text-gray-600">Meta Title:</span> <span x-text="genResult?.meta_title"></span></p>
+                        <p><span class="font-medium text-gray-600">Meta Desc:</span> <span x-text="genResult?.meta_description"></span></p>
+                    </div>
+                    <!-- Content -->
+                    <div class="prose max-w-none text-sm leading-relaxed whitespace-pre-wrap" x-text="genResult?.content"></div>
+                    <!-- Suggestions -->
+                    <div x-show="genResult?.suggestions?.length" class="mt-4 p-3 bg-yellow-50 rounded-lg">
+                        <h4 class="text-sm font-semibold text-yellow-800 mb-2"><i class="fas fa-lightbulb"></i> Suggestions</h4>
+                        <ul class="text-xs text-yellow-700 space-y-1">
+                            <template x-for="s in genResult?.suggestions"><li x-text="'- ' + s"></li></template>
+                        </ul>
+                    </div>
+                </div>
+                <div x-show="!genResult && !loading" class="bg-white rounded-lg shadow p-12 text-center text-gray-400">
+                    <i class="fas fa-robot text-4xl mb-3"></i>
+                    <p>Configure settings and click Generate to create SEO content</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Optimize Content Tab -->
+    <div x-show="tab==='optimize'" x-cloak>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-4">Paste Content to Optimize</h3>
+                <form @submit.prevent="optimizeContent()" class="space-y-3">
+                    <textarea x-model="optForm.content" rows="10" placeholder="Paste your existing content here..." class="w-full border rounded-lg px-3 py-2 text-sm" required></textarea>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" x-model="optForm.keyword" placeholder="Target keyword" class="border rounded-lg px-3 py-2 text-sm" required>
+                        <input type="text" x-model="optForm.secondary_keywords" placeholder="Secondary keywords" class="border rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">AI Model</label>
+                        <select x-model="optForm.model_id" @change="updateOptProvider()" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <template x-for="m in models" :key="m.model_id">
+                                <option :value="m.model_id" x-text="m.display_name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" :disabled="loading" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium">
+                            <i class="fas fa-search"></i> Analyze
+                        </button>
+                        <button type="button" @click="improveContent()" :disabled="loading" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium">
+                            <i class="fas fa-magic"></i> Auto-Improve
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div x-show="optResult" x-cloak>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold">Optimization Results</h3>
+                        <span class="text-2xl font-bold" :class="optResult?.overall_score >= 80 ? 'text-green-600' : optResult?.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'" x-text="optResult?.overall_score + '/100'"></span>
+                    </div>
+
+                    <!-- Meta suggestions -->
+                    <div x-show="optResult?.rewritten_meta_title" class="mb-4 p-3 bg-green-50 rounded-lg text-sm">
+                        <p class="font-medium text-green-800 mb-1">Suggested Meta:</p>
+                        <p class="text-green-700">Title: <span x-text="optResult?.rewritten_meta_title"></span></p>
+                        <p class="text-green-700">Desc: <span x-text="optResult?.rewritten_meta_description"></span></p>
+                    </div>
+                    <!-- Improvements list -->
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        <template x-for="imp in optResult?.improvements || []" :key="imp.issue">
+                            <div class="p-3 rounded-lg text-sm" :class="imp.priority==='high' ? 'bg-red-50' : imp.priority==='medium' ? 'bg-yellow-50' : 'bg-blue-50'">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium" :class="imp.priority==='high' ? 'bg-red-200 text-red-800' : imp.priority==='medium' ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-200 text-blue-800'" x-text="imp.priority"></span>
+                                    <span class="px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-700" x-text="imp.category"></span>
+                                </div>
+                                <p class="font-medium text-gray-800" x-text="imp.issue"></p>
+                                <p class="text-gray-600 mt-0.5" x-text="imp.suggestion"></p>
+                                <p x-show="imp.example" class="text-gray-500 italic mt-0.5 text-xs" x-text="imp.example"></p>
+                            </div>
+                        </template>
+                    </div>
+                    <!-- Content gaps -->
+                    <div x-show="optResult?.content_gaps?.length" class="mt-4 p-3 bg-purple-50 rounded-lg">
+                        <h4 class="text-sm font-semibold text-purple-800 mb-2">Content Gaps</h4>
+                        <ul class="text-xs text-purple-700 space-y-1">
+                            <template x-for="g in optResult?.content_gaps"><li x-text="'- ' + g"></li></template>
+                        </ul>
+                    </div>
+                    <!-- Improved content (from auto-improve) -->
+                    <div x-show="optResult?.improved_content" class="mt-4">
+                        <h4 class="text-sm font-semibold mb-2">Improved Content:</h4>
+                        <div class="bg-gray-50 rounded-lg p-3 text-sm max-h-64 overflow-y-auto whitespace-pre-wrap" x-text="optResult?.improved_content"></div>
+                    </div>
+                </div>
+                <div x-show="!optResult && !loading" class="text-center text-gray-400 py-12">
+                    <i class="fas fa-magic text-3xl mb-2"></i>
+                    <p class="text-sm">Paste content and analyze for optimization</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Title Generator Tab -->
+    <div x-show="tab==='titles'" x-cloak>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-4">Generate Title Ideas</h3>
+                <form @submit.prevent="generateTitles()" class="space-y-3">
+                    <input type="text" x-model="titleForm.topic" placeholder="Topic or subject" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    <input type="text" x-model="titleForm.keyword" placeholder="Target keyword" class="w-full border rounded-lg px-3 py-2 text-sm" required>
+                    <select x-model="titleForm.content_type" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <option value="article">Article</option>
+                        <option value="blog_post">Blog Post</option>
+                        <option value="guide">Guide</option>
+                        <option value="listicle">Listicle</option>
+                    </select>
+                    <select x-model="titleForm.model_id" @change="updateTitleProvider()" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <template x-for="m in models" :key="m.model_id"><option :value="m.model_id" x-text="m.display_name"></option></template>
+                    </select>
+                    <button type="submit" :disabled="loading" class="w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50 text-sm font-medium">
+                        <i class="fas fa-heading"></i> Generate 10 Titles
+                    </button>
+                </form>
+            </div>
+            <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-4">Title Suggestions</h3>
+                <div x-show="titleResult?.title_suggestions?.length" class="space-y-2">
+                    <template x-for="(title, i) in titleResult?.title_suggestions || []" :key="i">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer" @click="copyText(title)">
+                            <span class="text-sm" x-text="(i+1) + '. ' + title"></span>
+                            <span class="text-xs text-gray-400" x-text="title.length + ' chars'"></span>
+                        </div>
+                    </template>
+                </div>
+                <p x-show="!titleResult?.title_suggestions?.length && !loading" class="text-gray-400 text-center py-8"><i class="fas fa-heading text-3xl mb-2"></i><br>Generate title ideas above</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Compare Models Tab -->
+    <div x-show="tab==='compare'" x-cloak>
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 class="font-semibold mb-4">Compare AI Models Side-by-Side</h3>
+            <form @submit.prevent="compareModels()" class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" x-model="compareForm.topic" placeholder="Topic" class="border rounded-lg px-3 py-2 text-sm" required>
+                    <input type="text" x-model="compareForm.keyword" placeholder="Target keyword" class="border rounded-lg px-3 py-2 text-sm" required>
+                    <input type="number" x-model="compareForm.word_count" placeholder="Word count" class="border rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-2">Select Models to Compare (2-4):</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <template x-for="m in models" :key="m.model_id">
+                            <label class="flex items-center gap-2 p-2 border rounded-lg text-xs cursor-pointer hover:bg-gray-50" :class="compareForm.selectedModels.includes(m.model_id) && 'border-purple-400 bg-purple-50'">
+                                <input type="checkbox" :value="m.model_id" x-model="compareForm.selectedModels" class="rounded">
+                                <span x-text="m.display_name"></span>
+                            </label>
+                        </template>
+                    </div>
+                </div>
+                <button type="submit" :disabled="loading || compareForm.selectedModels.length < 2" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm font-medium">
+                    <i class="fas fa-balance-scale"></i> Compare (<span x-text="compareForm.selectedModels.length"></span> models)
+                </button>
+            </form>
+        </div>
+        <!-- Comparison Results -->
+        <div x-show="compareResults?.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <template x-for="(r, i) in compareResults || []" :key="i">
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b">
+                        <span class="font-medium text-sm" x-text="r.model_used"></span>
+                        <div class="flex gap-3 text-xs text-gray-500">
+                            <span>SEO: <b :class="(r.seo_score||0)>=80?'text-green-600':'text-yellow-600'" x-text="r.seo_score"></b></span>
+                            <span x-text="r.word_count + ' words'"></span>
+                            <span x-text="r.generation_time_sec + 's'"></span>
+                        </div>
+                    </div>
+                    <div class="text-xs max-h-64 overflow-y-auto whitespace-pre-wrap text-gray-700" x-text="r.content?.substring(0, 1000) + (r.content?.length > 1000 ? '...' : '')"></div>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+
+<script>
+function aiWriter() {
+    return {
+        tab: 'generate', loading: false, models: [],
+        form: { topic:'', keyword:'', content_type:'article', secondary_keywords:'', word_count:1500, tone:'professional', audience:'general', language:'en', instructions:'', provider:'openai', model_id:'gpt-4o-mini', temperature:0.7, max_tokens:4096 },
+        optForm: { content:'', keyword:'', secondary_keywords:'', provider:'openai', model_id:'gpt-4o-mini' },
+        titleForm: { topic:'', keyword:'', content_type:'article', language:'en', provider:'openai', model_id:'gpt-4o-mini' },
+        compareForm: { topic:'', keyword:'', word_count:1000, selectedModels:[] },
+        genResult: null, optResult: null, titleResult: null, compareResults: [],
+
+        async loadModels() {
+            try {
+                const res = await fetch('/api/v1/ai/models');
+                const json = await res.json();
+                if (json.success) this.models = json.data.models;
+            } catch(e) { console.error('Failed to load models', e); }
+        },
+        updateProvider() {
+            const m = this.models.find(x => x.model_id === this.form.model_id);
+            if (m) this.form.provider = m.provider;
+        },
+        updateOptProvider() {
+            const m = this.models.find(x => x.model_id === this.optForm.model_id);
+            if (m) this.optForm.provider = m.provider;
+        },
+        updateTitleProvider() {
+            const m = this.models.find(x => x.model_id === this.titleForm.model_id);
+            if (m) this.titleForm.provider = m.provider;
+        },
+        async generateContent() {
+            this.loading = true; this.genResult = null;
+            try {
+                const res = await fetch('/api/v1/ai/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(this.form) });
+                const json = await res.json();
+                if (json.success) this.genResult = json.data;
+                else alert(json.detail || 'Failed');
+            } catch(e) { alert('Error: '+e.message); }
+            this.loading = false;
+        },
+        async optimizeContent() {
+            this.loading = true; this.optResult = null;
+            try {
+                const res = await fetch('/api/v1/ai/optimize/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(this.optForm) });
+                const json = await res.json();
+                if (json.success) this.optResult = json.data;
+                else alert(json.detail || 'Failed');
+            } catch(e) { alert('Error: '+e.message); }
+            this.loading = false;
+        },
+        async improveContent() {
+            this.loading = true; this.optResult = null;
+            try {
+                const res = await fetch('/api/v1/ai/optimize/improve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ content:this.optForm.content, keyword:this.optForm.keyword, secondary_keywords:this.optForm.secondary_keywords, provider:this.optForm.provider, model_id:this.optForm.model_id }) });
+                const json = await res.json();
+                if (json.success) this.optResult = json.data;
+                else alert(json.detail || 'Failed');
+            } catch(e) { alert('Error: '+e.message); }
+            this.loading = false;
+        },
+        async generateTitles() {
+            this.loading = true; this.titleResult = null;
+            try {
+                const res = await fetch('/api/v1/ai/optimize/titles', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(this.titleForm) });
+                const json = await res.json();
+                if (json.success) this.titleResult = json.data;
+            } catch(e) { alert('Error: '+e.message); }
+            this.loading = false;
+        },
+        async compareModels() {
+            this.loading = true; this.compareResults = [];
+            const models = this.compareForm.selectedModels.map(id => { const m = this.models.find(x=>x.model_id===id); return {provider:m?.provider||'openai', model_id:id}; });
+            try {
+                const res = await fetch('/api/v1/ai/generate/compare', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ topic:this.compareForm.topic, keyword:this.compareForm.keyword, word_count:this.compareForm.word_count, models }) });
+                const json = await res.json();
+                if (json.success) this.compareResults = json.data.results;
+            } catch(e) { alert('Error: '+e.message); }
+            this.loading = false;
+        },
+        copyContent() { navigator.clipboard.writeText(this.genResult?.content || ''); },
+        copyText(t) { navigator.clipboard.writeText(t); }
+    }
+}
+</script>
+{% endblock %}

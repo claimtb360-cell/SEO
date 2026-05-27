@@ -19,13 +19,14 @@ def create_app() -> FastAPI:
     )
 
     # Register API routes
-    from .routes import analyze, crawl, check, competitors, rank, generators
+    from .routes import analyze, crawl, check, competitors, rank, generators, ai_content
     app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])
     app.include_router(crawl.router, prefix="/api/v1", tags=["Crawling"])
     app.include_router(check.router, prefix="/api/v1", tags=["Health Checks"])
     app.include_router(competitors.router, prefix="/api/v1", tags=["Competitors"])
     app.include_router(rank.router, prefix="/api/v1", tags=["Rank Tracking"])
     app.include_router(generators.router, prefix="/api/v1", tags=["Generators"])
+    app.include_router(ai_content.router, prefix="/api/v1", tags=["AI Content"])
 
     # Register web UI routes
     from .routes import ui
