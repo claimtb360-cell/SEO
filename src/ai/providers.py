@@ -51,6 +51,9 @@ class OpenAIProvider(BaseAIProvider):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
+        if not self.api_key:
+            raise ValueError("OPENAI_API_KEY not configured. Add it to Environment Variables.")
+
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
@@ -62,6 +65,12 @@ class OpenAIProvider(BaseAIProvider):
                     "temperature": temperature,
                 },
             )
+            if response.status_code == 401:
+                raise ValueError("OpenAI API key is invalid or expired. Please check your OPENAI_API_KEY.")
+            if response.status_code == 429:
+                raise ValueError("OpenAI rate limit exceeded or insufficient credits. Check billing at platform.openai.com.")
+            if response.status_code == 404:
+                raise ValueError(f"Model '{self.model_id}' not found. Your API key may not have access to this model.")
             response.raise_for_status()
             data = response.json()
             return data["choices"][0]["message"]["content"]
@@ -111,6 +120,9 @@ class AnthropicProvider(BaseAIProvider):
                        max_tokens: int = 4096, temperature: float = 0.7, **kwargs) -> str:
         import httpx
 
+        if not self.api_key:
+            raise ValueError("ANTHROPIC_API_KEY not configured. Add it to Environment Variables.")
+
         body: Dict[str, Any] = {
             "model": self.model_id,
             "max_tokens": max_tokens,
@@ -130,6 +142,10 @@ class AnthropicProvider(BaseAIProvider):
                 },
                 json=body,
             )
+            if response.status_code == 401:
+                raise ValueError("Anthropic API key is invalid or expired. Please check your ANTHROPIC_API_KEY.")
+            if response.status_code == 429:
+                raise ValueError("Anthropic rate limit exceeded or insufficient credits.")
             response.raise_for_status()
             data = response.json()
             return data["content"][0]["text"]

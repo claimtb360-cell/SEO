@@ -8,8 +8,64 @@ from src.api.schemas import ApiResponse
 from src.ai.content_writer import AIContentWriter, ContentRequest
 from src.ai.seo_optimizer import AISEOOptimizer
 from src.ai.models import get_available_models, AIProvider
+from src.utils.config import settings
 
 router = APIRouter(prefix="/ai", tags=["AI Content"])
+
+
+@router.get("/test-keys", response_model=ApiResponse)
+async def test_api_keys():
+    """Test which API keys are configured and valid."""
+    import httpx
+
+    results = {}
+
+    # Test OpenAI
+    if settings.openai_api_key:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                r = await client.get(
+                    "https://api.openai.com/v1/models",
+                    headers={"Authorization": f"Bearer {settings.openai_api_key}"},
+                )
+                results["openai"] = {"configured": True, "valid": r.status_code == 200, "status": r.status_code}
+        except Exception as e:
+            results["openai"] = {"configured": True, "valid": False, "error": str(e)}
+    else:
+        results["openai"] = {"configured": False, "valid": False}
+
+    # Test Anthropic
+    if settings.anthropic_api_key:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                r = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": settings.anthropic_api_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={"model": "claude-3-5-haiku-20241022", "max_tokens": 5, "messages": [{"role": "user", "content": "hi"}]},
+                )
+                results["anthropic"] = {"configured": True, "valid": r.status_code == 200, "status": r.status_code}
+        except Exception as e:
+            results["anthropic"] = {"configured": True, "valid": False, "error": str(e)}
+    else:
+        results["anthropic"] = {"configured": False, "valid": False}
+
+    # Test Groq
+    if settings.groq_api_key:
+        results["groq"] = {"configured": True, "valid": None, "note": "Key present, not tested"}
+    else:
+        results["groq"] = {"configured": False, "valid": False}
+
+    # Test Gemini
+    if settings.gemini_api_key:
+        results["gemini"] = {"configured": True, "valid": None, "note": "Key present, not tested"}
+    else:
+        results["gemini"] = {"configured": False, "valid": False}
+
+    return ApiResponse(success=True, data={"keys": results})
 
 
 # ---- Request Schemas ----
