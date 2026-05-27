@@ -236,7 +236,7 @@ def track_rank(keyword: str, domain: str):
             console.print(f"  URL: {entry.url}")
             console.print(f"  Title: {entry.title}")
         else:
-            console.print(f"\n  [red]Not found in top 100 results[/red]")
+            console.print("\n  [red]Not found in top 100 results[/red]")
 
     run_async(_track())
 

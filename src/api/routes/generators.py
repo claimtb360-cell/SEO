@@ -1,7 +1,6 @@
 """Generator API routes."""
 
 from fastapi import APIRouter
-from fastapi.responses import PlainTextResponse
 
 from src.api.schemas import SitemapGenerateRequest, RobotsGenerateRequest, ApiResponse
 from src.generators import SitemapGenerator, RobotsGenerator

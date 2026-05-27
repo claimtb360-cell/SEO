@@ -1,7 +1,7 @@
 """Pydantic schemas for API request/response validation."""
 
 from typing import List, Optional
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 
 class AnalyzeRequest(BaseModel):

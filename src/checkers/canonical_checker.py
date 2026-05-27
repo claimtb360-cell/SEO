@@ -6,7 +6,6 @@ from urllib.parse import urlparse, urljoin
 
 from src.utils.http_client import HttpClient
 from src.utils.html_parser import HtmlParser
-from src.utils.logger import logger
 
 
 @dataclass
@@ -102,7 +101,6 @@ class CanonicalChecker:
 
     async def check_pages(self, urls: List[str]) -> CanonicalCheckResult:
         """Check canonical tags across multiple pages."""
-        import asyncio
 
         result = CanonicalCheckResult()
         result.urls_checked = len(urls)

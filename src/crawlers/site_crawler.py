@@ -3,7 +3,7 @@
 import asyncio
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Set, Optional, Callable
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 from datetime import datetime
 
 from src.utils.http_client import HttpClient
@@ -147,8 +147,8 @@ class SiteCrawler:
 
             # Extract and queue internal links
             links = parser.get_links()
-            internal = [l for l in links if l["is_internal"]]
-            external = [l for l in links if not l["is_internal"]]
+            internal = [link for link in links if link["is_internal"]]
+            external = [link for link in links if not link["is_internal"]]
 
             page.internal_links = len(internal)
             page.external_links = len(external)

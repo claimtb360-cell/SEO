@@ -6,7 +6,6 @@ from urllib.parse import urljoin
 import xml.etree.ElementTree as ET
 
 from src.utils.http_client import HttpClient
-from src.utils.logger import logger
 
 
 @dataclass

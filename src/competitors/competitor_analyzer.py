@@ -6,7 +6,6 @@ from typing import List, Dict, Any, Optional
 
 from src.utils.http_client import HttpClient
 from src.utils.html_parser import HtmlParser
-from src.utils.logger import logger
 from src.analyzers.meta_analyzer import MetaAnalyzer
 from src.analyzers.heading_analyzer import HeadingAnalyzer
 from src.analyzers.content_analyzer import ContentAnalyzer

@@ -5,7 +5,6 @@ from typing import List, Dict, Any, Optional
 
 from src.utils.http_client import HttpClient
 from src.utils.html_parser import HtmlParser
-from src.utils.logger import logger
 
 
 @dataclass
@@ -129,7 +128,7 @@ class MobileFriendlyChecker:
     def _check_touch_elements(self, result: MobileFriendlyResult, parser: HtmlParser):
         """Check for properly sized touch targets."""
         links = parser.get_links()
-        small_targets = sum(1 for l in links if len(l.get("text", "")) < 2)
+        small_targets = sum(1 for lnk in links if len(lnk.get("text", "")) < 2)
         if small_targets > 5:
             result.tap_targets_ok = False
             result.issues.append(MobileIssue(

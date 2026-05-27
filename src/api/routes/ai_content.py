@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.api.schemas import ApiResponse
-from src.ai.content_writer import AIContentWriter, ContentRequest, ContentResult
+from src.ai.content_writer import AIContentWriter, ContentRequest
 from src.ai.seo_optimizer import AISEOOptimizer
 from src.ai.models import get_available_models, AIProvider
 

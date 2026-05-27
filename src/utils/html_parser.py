@@ -3,7 +3,7 @@
 from typing import Optional, List, Dict, Any
 from urllib.parse import urljoin, urlparse
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 
 
 class HtmlParser:

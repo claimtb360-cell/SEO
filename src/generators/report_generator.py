@@ -1,7 +1,7 @@
 """SEO audit report generator (HTML format)."""
 
-from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List
+from dataclasses import dataclass
+from typing import Dict, Any, Optional
 from datetime import datetime
 from pathlib import Path
 

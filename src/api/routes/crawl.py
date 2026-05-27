@@ -1,6 +1,6 @@
 """Crawling API routes."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from src.api.schemas import CrawlRequest, ApiResponse
 from src.crawlers import SiteCrawler, SitemapParser

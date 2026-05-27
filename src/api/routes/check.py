@@ -1,6 +1,6 @@
 """Health check API routes."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from src.api.schemas import (
     BrokenLinkRequest, RedirectCheckRequest,

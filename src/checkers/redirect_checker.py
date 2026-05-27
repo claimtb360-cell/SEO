@@ -2,12 +2,11 @@
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 import httpx
 
 from src.utils.config import settings
-from src.utils.logger import logger
 
 
 @dataclass

@@ -1,6 +1,6 @@
 """Sitemap.xml generator from crawled URLs."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import xml.etree.ElementTree as ET
