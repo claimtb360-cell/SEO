@@ -14,21 +14,27 @@ router = APIRouter(prefix="/ai", tags=["AI Content"])
 
 
 @router.get("/test-keys", response_model=ApiResponse)
-async def test_api_keys():
-    """Test which API keys are configured and valid."""
+async def test_api_keys(admin_key: Optional[str] = None):
+    """Test which API keys are configured and valid. Requires ADMIN_SECRET_KEY."""
     import httpx
+
+    # Security: require admin key to access this endpoint
+    admin_secret = settings.admin_secret_key
+    if not admin_secret or admin_key != admin_secret:
+        raise HTTPException(status_code=403, detail="Access denied. Provide ?admin_key=YOUR_SECRET")
 
     results = {}
 
     # Test OpenAI
     if settings.openai_api_key:
+        base_url = settings.openai_base_url or "https://api.openai.com/v1"
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 r = await client.get(
-                    "https://api.openai.com/v1/models",
+                    f"{base_url}/models",
                     headers={"Authorization": f"Bearer {settings.openai_api_key}"},
                 )
-                results["openai"] = {"configured": True, "valid": r.status_code == 200, "status": r.status_code}
+                results["openai"] = {"configured": True, "valid": r.status_code == 200, "status": r.status_code, "base_url": base_url}
         except Exception as e:
             results["openai"] = {"configured": True, "valid": False, "error": str(e)}
     else:
@@ -64,6 +70,12 @@ async def test_api_keys():
         results["gemini"] = {"configured": True, "valid": None, "note": "Key present, not tested"}
     else:
         results["gemini"] = {"configured": False, "valid": False}
+
+    # Test DeepSeek
+    if settings.deepseek_api_key:
+        results["deepseek"] = {"configured": True, "valid": None, "note": "Key present, not tested"}
+    else:
+        results["deepseek"] = {"configured": False, "valid": False}
 
     return ApiResponse(success=True, data={"keys": results})
 

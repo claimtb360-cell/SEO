@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     ai_max_tokens: int = 4096
     ai_temperature: float = 0.7
 
+    # Security
+    admin_secret_key: Optional[str] = None  # Required for /test-keys endpoint
+
     # Crawling
     max_concurrent_requests: int = 10
     request_timeout: int = 30
