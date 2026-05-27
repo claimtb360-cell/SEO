@@ -1,0 +1,71 @@
+# ============================================
+# SEO Tool - Docker Compose
+# Usage: docker compose up -d
+# ============================================
+
+version: "3.9"
+
+services:
+  seo-tool:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seo-tool
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - DATABASE_URL=sqlite+aiosqlite:///./data/seo_tool.db
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GOOGLE_CSE_ID=${GOOGLE_CSE_ID:-}
+      - PAGESPEED_API_KEY=${PAGESPEED_API_KEY:-}
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-10}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-30}
+      - CRAWL_DELAY=${CRAWL_DELAY:-1.0}
+    volumes:
+      - seo_data:/app/data
+      - seo_reports:/app/reports
+      - seo_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+  # Optional: Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: seo-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      seo-tool:
+        condition: service_healthy
+    profiles:
+      - production
+
+volumes:
+  seo_data:
+    driver: local
+  seo_reports:
+    driver: local
+  seo_logs:
+    driver: local
