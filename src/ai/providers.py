@@ -333,6 +333,84 @@ class MistralProvider(BaseAIProvider):
             yield word + " "
 
 
+class DeepSeekProvider(BaseAIProvider):
+    """DeepSeek API provider (OpenAI-compatible API)."""
+
+    def __init__(self, model_id: str = "deepseek-chat"):
+        self.model_id = model_id
+        self.api_key = settings.deepseek_api_key
+        self.base_url = "https://api.deepseek.com/v1"
+
+    async def generate(self, prompt: str, system_prompt: Optional[str] = None,
+                       max_tokens: int = 4096, temperature: float = 0.7, **kwargs) -> str:
+        import httpx
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        if not self.api_key:
+            raise ValueError("DEEPSEEK_API_KEY not configured. Add it to Environment Variables.")
+
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                f"{self.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": self.model_id,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+            )
+            if response.status_code == 401:
+                raise ValueError("DeepSeek API key is invalid or expired. Please check your DEEPSEEK_API_KEY.")
+            if response.status_code == 429:
+                raise ValueError("DeepSeek rate limit exceeded or insufficient credits.")
+            if response.status_code == 404:
+                raise ValueError(f"Model '{self.model_id}' not found on DeepSeek.")
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+
+    async def stream(self, prompt: str, system_prompt: Optional[str] = None,
+                     max_tokens: int = 4096, temperature: float = 0.7, **kwargs) -> AsyncGenerator[str, None]:
+        import httpx
+        import json
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        if not self.api_key:
+            raise ValueError("DEEPSEEK_API_KEY not configured. Add it to Environment Variables.")
+
+        async with httpx.AsyncClient(timeout=120) as client:
+            async with client.stream(
+                "POST",
+                f"{self.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": self.model_id,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "stream": True,
+                },
+            ) as response:
+                async for line in response.aiter_lines():
+                    if line.startswith("data: ") and line != "data: [DONE]":
+                        try:
+                            chunk = json.loads(line[6:])
+                            delta = chunk["choices"][0].get("delta", {}).get("content", "")
+                            if delta:
+                                yield delta
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            pass
+
+
 def get_provider(provider: str, model_id: str) -> BaseAIProvider:
     """Factory function to get the appropriate AI provider."""
     providers = {
@@ -341,6 +419,7 @@ def get_provider(provider: str, model_id: str) -> BaseAIProvider:
         "google": GoogleProvider,
         "groq": GroqProvider,
         "mistral": MistralProvider,
+        "deepseek": DeepSeekProvider,
     }
 
     provider_class = providers.get(provider)

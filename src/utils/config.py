@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     groq_api_key: Optional[str] = None
     mistral_api_key: Optional[str] = None
     cohere_api_key: Optional[str] = None
+    deepseek_api_key: Optional[str] = None
 
     # AI defaults
     ai_default_provider: str = "openai"
