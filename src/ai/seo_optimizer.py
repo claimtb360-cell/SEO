@@ -2,11 +2,9 @@
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
-from datetime import datetime
 
 from src.utils.logger import logger
 from .providers import get_provider
-from .models import get_model
 
 
 # Optimization-specific prompts
@@ -196,7 +194,6 @@ class AISEOOptimizer:
     ) -> SEOOptimizationResult:
         """Analyze content and provide SEO optimization suggestions."""
         import time
-        import json
         start = time.time()
 
         result = SEOOptimizationResult(

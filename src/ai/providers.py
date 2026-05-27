@@ -4,7 +4,6 @@ from typing import Optional, Dict, Any, AsyncGenerator
 from abc import ABC, abstractmethod
 
 from src.utils.config import settings
-from src.utils.logger import logger
 
 
 class BaseAIProvider(ABC):
