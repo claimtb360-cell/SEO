@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SEO Tool{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    {% block head %}{% endblock %}
+</head>
+<body class="h-full bg-gray-50" x-data="{ sidebarOpen: true }">
+<div class="flex h-full">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-white flex flex-col" x-show="sidebarOpen">
+        <div class="p-4 border-b border-gray-700">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i class="fas fa-chart-line text-green-400"></i> SEO Tool
+            </h1>
+            <p class="text-xs text-gray-400 mt-1">All-in-One SEO Platform</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-1">
+            <a href="/" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                <i class="fas fa-tachometer-alt w-5"></i> Dashboard
+            </a>
+            <a href="/analyze" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                <i class="fas fa-search w-5"></i> Analyze
+            </a>
+            <a href="/crawl" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                <i class="fas fa-spider w-5"></i> Crawl Site
+            </a>
+            <a href="/competitors" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                <i class="fas fa-users w-5"></i> Competitors
+            </a>
+            <a href="/rank-tracker" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                <i class="fas fa-trophy w-5"></i> Rank Tracker
+            </a>
+            <a href="/tools" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                <i class="fas fa-wrench w-5"></i> Tools
+            </a>
+        </nav>
+        <div class="p-4 border-t border-gray-700">
+            <a href="/api/docs" target="_blank" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white">
+                <i class="fas fa-book"></i> API Documentation
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+        <header class="bg-white shadow-sm border-b px-6 py-4 flex items-center justify-between">
+            <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-bars text-lg"></i>
+            </button>
+            <h2 class="text-lg font-semibold text-gray-800">{% block page_title %}{% endblock %}</h2>
+            <div class="text-sm text-gray-500">v1.0.0</div>
+        </header>
+        <div class="p-6">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

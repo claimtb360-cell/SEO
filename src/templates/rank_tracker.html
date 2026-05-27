@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Rank Tracker - SEO Tool{% endblock %}
+{% block page_title %}Rank Tracker{% endblock %}
+
+{% block content %}
+<div x-data="rankPage()">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-lg font-semibold mb-4">Track Keyword Rankings</h3>
+        <form @submit.prevent="checkRankings()" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Domain</label>
+                    <input type="text" x-model="domain" placeholder="example.com"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Keywords (one per line)</label>
+                    <textarea x-model="keywordsText" rows="3" placeholder="seo tool&#10;keyword research&#10;backlink checker"
+                              class="w-full border border-gray-300 rounded-lg px-4 py-2"></textarea>
+                </div>
+            </div>
+            <button type="submit" :disabled="loading"
+                    class="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50">
+                <span x-text="loading ? 'Checking...' : 'Check Rankings'"></span>
+            </button>
+        </form>
+    </div>
+
+    <div x-show="result" x-cloak class="space-y-6">
+        <!-- Summary -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <p class="text-2xl font-bold text-blue-600" x-text="result?.total_keywords"></p>
+                <p class="text-xs text-gray-500">Keywords</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <p class="text-2xl font-bold text-green-600" x-text="result?.keywords_in_top_10"></p>
+                <p class="text-xs text-gray-500">Top 10</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <p class="text-2xl font-bold text-purple-600" x-text="result?.avg_position || '-'"></p>
+                <p class="text-xs text-gray-500">Avg Position</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <p class="text-2xl font-bold text-green-600" x-text="result?.improved"></p>
+                <p class="text-xs text-gray-500">Improved</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <p class="text-2xl font-bold text-red-600" x-text="result?.declined"></p>
+                <p class="text-xs text-gray-500">Declined</p>
+            </div>
+        </div>
+
+        <!-- Keyword Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="text-left px-4 py-3">Keyword</th>
+                        <th class="px-4 py-3">Position</th>
+                        <th class="px-4 py-3">Change</th>
+                        <th class="px-4 py-3">Best</th>
+                        <th class="px-4 py-3">Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="kw in result?.keywords" :key="kw.keyword">
+                        <tr class="border-t hover:bg-gray-50">
+                            <td class="px-4 py-2 font-medium" x-text="kw.keyword"></td>
+                            <td class="px-4 py-2 text-center">
+                                <span class="font-bold" x-text="kw.current_position || '-'"></span>
+                            </td>
+                            <td class="px-4 py-2 text-center">
+                                <span :class="kw.position_change > 0 ? 'text-green-600' : kw.position_change < 0 ? 'text-red-600' : 'text-gray-400'"
+                                      x-text="kw.position_change > 0 ? '+' + kw.position_change : kw.position_change"></span>
+                            </td>
+                            <td class="px-4 py-2 text-center" x-text="kw.best_position || '-'"></td>
+                            <td class="px-4 py-2 text-center">
+                                <i :class="kw.trend === 'up' ? 'fas fa-arrow-up text-green-500' : kw.trend === 'down' ? 'fas fa-arrow-down text-red-500' : 'fas fa-minus text-gray-400'"></i>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function rankPage() {
+    return {
+        domain: '', keywordsText: '', loading: false, result: null,
+        async checkRankings() {
+            this.loading = true; this.result = null;
+            const keywords = this.keywordsText.split('\n').map(k => k.trim()).filter(k => k);
+            try {
+                const res = await fetch('/api/v1/rank/check', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({keywords, domain: this.domain})
+                });
+                const json = await res.json();
+                if (json.success) this.result = json.data;
+            } catch(e) { alert('Error: ' + e.message); }
+            this.loading = false;
+        }
+    }
+}
+</script>
+{% endblock %}

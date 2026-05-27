@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Analyze - SEO Tool{% endblock %}
+{% block page_title %}SEO Analysis{% endblock %}
+
+{% block content %}
+<div x-data="analyzePage()">
+    <!-- Input Form -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-lg font-semibold mb-4">Analyze a Page</h3>
+        <form @submit.prevent="analyze()" class="space-y-4">
+            <div class="flex gap-3">
+                <input type="url" x-model="url" placeholder="https://example.com"
+                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500" required>
+                <input type="text" x-model="keyword" placeholder="Target keyword (optional)"
+                       class="w-64 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="submit" :disabled="loading"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                <span x-text="loading ? 'Analyzing...' : 'Run Full Analysis'"></span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Results -->
+    <div x-show="result" x-cloak>
+        <!-- Score Overview -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Score Overview</h3>
+                <span class="text-3xl font-bold"
+                      :class="result?.overall_score >= 80 ? 'text-green-600' : result?.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'"
+                      x-text="result?.overall_score + '/100'"></span>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <template x-for="(data, key) in result?.analysis" :key="key">
+                    <div class="border rounded-lg p-3 text-center cursor-pointer hover:shadow-md transition"
+                         @click="activeTab = key"
+                         :class="activeTab === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
+                        <div class="text-xl font-bold"
+                             :class="data.score >= 80 ? 'text-green-600' : data.score >= 60 ? 'text-yellow-600' : 'text-red-600'"
+                             x-text="Math.round(data.score)"></div>
+                        <p class="text-xs text-gray-600 capitalize" x-text="key"></p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Detail Tab -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4 capitalize" x-text="activeTab + ' Details'"></h3>
+            <div class="space-y-3">
+                <template x-for="issue in result?.analysis[activeTab]?.issues || []" :key="issue.message">
+                    <div class="flex items-start gap-3 p-3 rounded-lg" :class="issue.severity === 'error' ? 'bg-red-50' : issue.severity === 'warning' ? 'bg-yellow-50' : 'bg-blue-50'">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium"
+                              :class="issue.severity === 'error' ? 'bg-red-200 text-red-800' : issue.severity === 'warning' ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-200 text-blue-800'"
+                              x-text="issue.severity"></span>
+                        <div>
+                            <p class="text-sm font-medium text-gray-800" x-text="issue.message"></p>
+                            <p class="text-xs text-gray-500 mt-1" x-text="issue.suggestion"></p>
+                        </div>
+                    </div>
+                </template>
+                <p x-show="!result?.analysis[activeTab]?.issues?.length" class="text-green-600 text-sm">
+                    <i class="fas fa-check-circle"></i> No issues found!
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function analyzePage() {
+    return {
+        url: '', keyword: '', loading: false, result: null, activeTab: 'meta',
+        async analyze() {
+            this.loading = true; this.result = null;
+            try {
+                const res = await fetch('/api/v1/analyze', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: this.url, target_keyword: this.keyword || null})
+                });
+                const json = await res.json();
+                if (json.success) { this.result = json.data; this.activeTab = 'meta'; }
+                else alert(json.detail || 'Failed');
+            } catch(e) { alert('Error: ' + e.message); }
+            this.loading = false;
+        }
+    }
+}
+</script>
+{% endblock %}

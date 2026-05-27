@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SEO Tool{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div x-data="dashboard()">
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-lg shadow p-5 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Quick Analyze</p>
+                    <p class="text-2xl font-bold text-gray-800"><i class="fas fa-search text-blue-500"></i></p>
+                </div>
+                <a href="/analyze" class="text-blue-500 hover:text-blue-700 text-sm">Go &rarr;</a>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 border-l-4 border-green-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Crawl Site</p>
+                    <p class="text-2xl font-bold text-gray-800"><i class="fas fa-spider text-green-500"></i></p>
+                </div>
+                <a href="/crawl" class="text-green-500 hover:text-green-700 text-sm">Go &rarr;</a>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 border-l-4 border-purple-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Competitors</p>
+                    <p class="text-2xl font-bold text-gray-800"><i class="fas fa-users text-purple-500"></i></p>
+                </div>
+                <a href="/competitors" class="text-purple-500 hover:text-purple-700 text-sm">Go &rarr;</a>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 border-l-4 border-yellow-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Rank Tracker</p>
+                    <p class="text-2xl font-bold text-gray-800"><i class="fas fa-trophy text-yellow-500"></i></p>
+                </div>
+                <a href="/rank-tracker" class="text-yellow-500 hover:text-yellow-700 text-sm">Go &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Analysis -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h3 class="text-lg font-semibold mb-4">Quick SEO Analysis</h3>
+        <form @submit.prevent="quickAnalyze()" class="flex gap-3">
+            <input type="url" x-model="url" placeholder="https://example.com"
+                   class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   required>
+            <button type="submit" :disabled="loading"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+                <i class="fas fa-search" :class="loading && 'fa-spin fa-spinner'"></i>
+                <span x-text="loading ? 'Analyzing...' : 'Analyze'"></span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Results -->
+    <div x-show="result" x-cloak class="space-y-6">
+        <!-- Overall Score -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center gap-6">
+                <div class="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold"
+                     :class="result?.overall_score >= 80 ? 'bg-green-100 text-green-700' : result?.overall_score >= 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'">
+                    <span x-text="result?.overall_score"></span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold" x-text="result?.url"></h3>
+                    <p class="text-gray-500">Overall SEO Score</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <template x-for="(data, key) in result?.analysis" :key="key">
+                <div class="bg-white rounded-lg shadow p-4 text-center">
+                    <div class="text-2xl font-bold"
+                         :class="data.score >= 80 ? 'text-green-600' : data.score >= 60 ? 'text-yellow-600' : 'text-red-600'"
+                         x-text="Math.round(data.score)"></div>
+                    <p class="text-xs text-gray-500 mt-1 capitalize" x-text="key"></p>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+<script>
+function dashboard() {
+    return {
+        url: '',
+        loading: false,
+        result: null,
+        async quickAnalyze() {
+            this.loading = true;
+            this.result = null;
+            try {
+                const res = await fetch('/api/v1/analyze', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: this.url})
+                });
+                const json = await res.json();
+                if (json.success) this.result = json.data;
+                else alert(json.detail || 'Analysis failed');
+            } catch(e) { alert('Error: ' + e.message); }
+            this.loading = false;
+        }
+    }
+}
+</script>
+{% endblock %}

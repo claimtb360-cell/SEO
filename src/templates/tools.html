@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Tools - SEO Tool{% endblock %}
+{% block page_title %}SEO Tools{% endblock %}
+
+{% block content %}
+<div x-data="toolsPage()">
+    <!-- Tool Tabs -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="flex border-b">
+            <button @click="tab='broken'" :class="tab==='broken' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium">Broken Links</button>
+            <button @click="tab='mobile'" :class="tab==='mobile' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium">Mobile Check</button>
+            <button @click="tab='sitemap'" :class="tab==='sitemap' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium">Sitemap Generator</button>
+            <button @click="tab='robots'" :class="tab==='robots' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'" class="px-4 py-3 text-sm font-medium">Robots.txt</button>
+        </div>
+
+        <div class="p-6">
+            <!-- Broken Links -->
+            <div x-show="tab==='broken'">
+                <form @submit.prevent="checkBrokenLinks()" class="flex gap-3 mb-4">
+                    <input type="url" x-model="url" placeholder="https://example.com" class="flex-1 border rounded-lg px-4 py-2" required>
+                    <button type="submit" :disabled="loading" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50">Check Links</button>
+                </form>
+                <div x-show="brokenResult" x-cloak>
+                    <p class="text-sm text-gray-600 mb-2">Found <span class="font-bold text-red-600" x-text="brokenResult?.broken_count"></span> broken links out of <span x-text="brokenResult?.total_links_checked"></span></p>
+                    <template x-for="bl in brokenResult?.broken_links?.slice(0, 20)" :key="bl.url">
+                        <div class="text-sm border-b py-2"><span class="text-red-600" x-text="bl.status_code || 'ERR'"></span> - <span x-text="bl.url"></span></div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Mobile Check -->
+            <div x-show="tab==='mobile'">
+                <form @submit.prevent="checkMobile()" class="flex gap-3 mb-4">
+                    <input type="url" x-model="url" placeholder="https://example.com" class="flex-1 border rounded-lg px-4 py-2" required>
+                    <button type="submit" :disabled="loading" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50">Check Mobile</button>
+                </form>
+                <div x-show="mobileResult" x-cloak>
+                    <p class="text-lg mb-3" :class="mobileResult?.is_mobile_friendly ? 'text-green-600' : 'text-red-600'" x-text="mobileResult?.is_mobile_friendly ? 'Mobile Friendly!' : 'Not Mobile Friendly'"></p>
+                    <p class="text-sm text-gray-600 mb-2">Score: <span class="font-bold" x-text="mobileResult?.score"></span>/100</p>
+                    <template x-for="issue in mobileResult?.issues" :key="issue.message">
+                        <div class="text-sm py-1"><span class="font-medium" x-text="issue.severity"></span>: <span x-text="issue.message"></span></div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Sitemap Generator -->
+            <div x-show="tab==='sitemap'">
+                <form @submit.prevent="generateSitemap()" class="flex gap-3 mb-4">
+                    <input type="url" x-model="url" placeholder="https://example.com" class="flex-1 border rounded-lg px-4 py-2" required>
+                    <button type="submit" :disabled="loading" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">Generate</button>
+                </form>
+                <div x-show="sitemapResult" x-cloak>
+                    <p class="text-sm text-gray-600 mb-2">Generated sitemap with <span class="font-bold" x-text="sitemapResult?.total_urls"></span> URLs</p>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs overflow-auto max-h-64" x-text="sitemapResult?.xml_content"></pre>
+                </div>
+            </div>
+
+            <!-- Robots.txt -->
+            <div x-show="tab==='robots'">
+                <form @submit.prevent="generateRobots()" class="flex gap-3 mb-4">
+                    <select x-model="robotsMode" class="border rounded-lg px-4 py-2">
+                        <option value="default">Default</option>
+                        <option value="permissive">Permissive (Allow All)</option>
+                        <option value="restrictive">Restrictive (Block All)</option>
+                    </select>
+                    <input type="text" x-model="sitemapUrl" placeholder="Sitemap URL (optional)" class="flex-1 border rounded-lg px-4 py-2">
+                    <button type="submit" :disabled="loading" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50">Generate</button>
+                </form>
+                <div x-show="robotsResult" x-cloak>
+                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg text-sm" x-text="robotsResult?.content"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toolsPage() {
+    return {
+        tab: 'broken', url: '', loading: false,
+        brokenResult: null, mobileResult: null, sitemapResult: null, robotsResult: null,
+        robotsMode: 'default', sitemapUrl: '',
+        async checkBrokenLinks() {
+            this.loading = true; this.brokenResult = null;
+            const res = await fetch('/api/v1/check/broken-links', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:this.url})});
+            const json = await res.json(); if(json.success) this.brokenResult = json.data; this.loading=false;
+        },
+        async checkMobile() {
+            this.loading = true; this.mobileResult = null;
+            const res = await fetch('/api/v1/check/mobile', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:this.url})});
+            const json = await res.json(); if(json.success) this.mobileResult = json.data; this.loading=false;
+        },
+        async generateSitemap() {
+            this.loading = true; this.sitemapResult = null;
+            const res = await fetch('/api/v1/generate/sitemap', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:this.url, max_pages:50})});
+            const json = await res.json(); if(json.success) this.sitemapResult = json.data; this.loading=false;
+        },
+        async generateRobots() {
+            this.loading = true; this.robotsResult = null;
+            const res = await fetch('/api/v1/generate/robots', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:this.robotsMode, sitemap_url:this.sitemapUrl||null})});
+            const json = await res.json(); if(json.success) this.robotsResult = json.data; this.loading=false;
+        }
+    }
+}
+</script>
+{% endblock %}

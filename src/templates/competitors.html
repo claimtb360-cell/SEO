@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Competitors - SEO Tool{% endblock %}
+{% block page_title %}Competitor Analysis{% endblock %}
+
+{% block content %}
+<div x-data="competitorsPage()">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-lg font-semibold mb-4">Compare with Competitors</h3>
+        <form @submit.prevent="compare()" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Your Website</label>
+                <input type="url" x-model="myUrl" placeholder="https://yoursite.com"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Competitor URLs (one per line)</label>
+                <textarea x-model="competitorText" rows="3" placeholder="https://competitor1.com&#10;https://competitor2.com"
+                          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+            <button type="submit" :disabled="loading"
+                    class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                <span x-text="loading ? 'Comparing...' : 'Compare Sites'"></span>
+            </button>
+        </form>
+    </div>
+
+    <div x-show="result" x-cloak class="space-y-6">
+        <!-- Comparison Table -->
+        <div class="bg-white rounded-lg shadow overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="text-left px-4 py-3">Metric</th>
+                        <th class="px-4 py-3 bg-blue-50">Your Site</th>
+                        <template x-for="(c, i) in result?.competitors" :key="i">
+                            <th class="px-4 py-3" x-text="new URL(c.url).hostname"></th>
+                        </template>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    <tr><td class="px-4 py-2 font-medium">Overall Score</td><td class="px-4 py-2 text-center bg-blue-50 font-bold" x-text="result?.my_site?.overall_score"></td>
+                        <template x-for="c in result?.competitors"><td class="px-4 py-2 text-center" x-text="c.overall_score"></td></template></tr>
+                    <tr><td class="px-4 py-2 font-medium">Word Count</td><td class="px-4 py-2 text-center bg-blue-50" x-text="result?.my_site?.word_count"></td>
+                        <template x-for="c in result?.competitors"><td class="px-4 py-2 text-center" x-text="c.word_count"></td></template></tr>
+                    <tr><td class="px-4 py-2 font-medium">Load Time</td><td class="px-4 py-2 text-center bg-blue-50" x-text="result?.my_site?.load_time_ms + 'ms'"></td>
+                        <template x-for="c in result?.competitors"><td class="px-4 py-2 text-center" x-text="c.load_time_ms + 'ms'"></td></template></tr>
+                    <tr><td class="px-4 py-2 font-medium">Internal Links</td><td class="px-4 py-2 text-center bg-blue-50" x-text="result?.my_site?.internal_links"></td>
+                        <template x-for="c in result?.competitors"><td class="px-4 py-2 text-center" x-text="c.internal_links"></td></template></tr>
+                    <tr><td class="px-4 py-2 font-medium">Headings</td><td class="px-4 py-2 text-center bg-blue-50" x-text="result?.my_site?.heading_count"></td>
+                        <template x-for="c in result?.competitors"><td class="px-4 py-2 text-center" x-text="c.heading_count"></td></template></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Insights -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h4 class="font-semibold text-green-700 mb-3"><i class="fas fa-arrow-up"></i> Advantages</h4>
+                <ul class="space-y-2"><template x-for="a in result?.advantages"><li class="text-sm text-gray-700 flex gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span x-text="a"></span></li></template></ul>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h4 class="font-semibold text-red-700 mb-3"><i class="fas fa-arrow-down"></i> Disadvantages</h4>
+                <ul class="space-y-2"><template x-for="d in result?.disadvantages"><li class="text-sm text-gray-700 flex gap-2"><i class="fas fa-times text-red-500 mt-0.5"></i><span x-text="d"></span></li></template></ul>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="font-semibold text-blue-700 mb-3"><i class="fas fa-lightbulb"></i> Recommendations</h4>
+            <ul class="space-y-2"><template x-for="r in result?.recommendations"><li class="text-sm text-gray-700 flex gap-2"><i class="fas fa-chevron-right text-blue-500 mt-0.5"></i><span x-text="r"></span></li></template></ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function competitorsPage() {
+    return {
+        myUrl: '', competitorText: '', loading: false, result: null,
+        async compare() {
+            this.loading = true; this.result = null;
+            const urls = this.competitorText.split('\n').map(u => u.trim()).filter(u => u);
+            try {
+                const res = await fetch('/api/v1/competitors/compare', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({my_url: this.myUrl, competitor_urls: urls})
+                });
+                const json = await res.json();
+                if (json.success) this.result = json.data;
+            } catch(e) { alert('Error: ' + e.message); }
+            this.loading = false;
+        }
+    }
+}
+</script>
+{% endblock %}
