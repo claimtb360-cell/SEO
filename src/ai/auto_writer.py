@@ -562,9 +562,19 @@ Start with ## Conclusion"""
         except json.JSONDecodeError:
             pass
         if "```json" in response:
-            start = response.index("```json") + 7
-            end = response.index("```", start)
             try:
+                start = response.index("```json") + 7
+                end = response.index("```", start)
+                return json.loads(response[start:end].strip())
+            except (json.JSONDecodeError, ValueError):
+                pass
+        elif "```" in response:
+            try:
+                start = response.index("```") + 3
+                # Skip language identifier if present
+                newline = response.index("\n", start)
+                start = newline + 1
+                end = response.index("```", start)
                 return json.loads(response[start:end].strip())
             except (json.JSONDecodeError, ValueError):
                 pass

@@ -191,7 +191,7 @@ class AnthropicProvider(BaseAIProvider):
 class GoogleProvider(BaseAIProvider):
     """Google Gemini API provider."""
 
-    def __init__(self, model_id: str = "gemini-2.0-flash"):
+    def __init__(self, model_id: str = "gemini-2.5-flash"):
         self.model_id = model_id
         self.api_key = settings.gemini_api_key
 
@@ -199,27 +199,47 @@ class GoogleProvider(BaseAIProvider):
                        max_tokens: int = 4096, temperature: float = 0.7, **kwargs) -> str:
         import httpx
 
+        if not self.api_key:
+            raise ValueError("GEMINI_API_KEY not configured.")
+
         contents = []
         if system_prompt:
             contents.append({"role": "user", "parts": [{"text": system_prompt}]})
-            contents.append({"role": "model", "parts": [{"text": "Understood. I will follow these instructions."}]})
+            contents.append({"role": "model", "parts": [{"text": "Understood."}]})
         contents.append({"role": "user", "parts": [{"text": prompt}]})
 
-        async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_id}:generateContent",
-                params={"key": self.api_key},
-                json={
-                    "contents": contents,
-                    "generationConfig": {
-                        "maxOutputTokens": max_tokens,
-                        "temperature": temperature,
-                    },
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
+        # Try v1beta first, fallback to v1
+        for api_version in ["v1beta", "v1"]:
+            try:
+                async with httpx.AsyncClient(timeout=120) as client:
+                    response = await client.post(
+                        f"https://generativelanguage.googleapis.com/{api_version}/models/{self.model_id}:generateContent",
+                        params={"key": self.api_key},
+                        json={
+                            "contents": contents,
+                            "generationConfig": {
+                                "maxOutputTokens": max_tokens,
+                                "temperature": temperature,
+                            },
+                        },
+                    )
+                    if response.status_code == 404:
+                        continue  # Try next API version
+                    if response.status_code == 400:
+                        # Model not available, try fallback model
+                        raise ValueError(f"Model '{self.model_id}' not available. Try gemini-2.5-flash or gemini-2.5-pro.")
+                    response.raise_for_status()
+                    data = response.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            return parts[0].get("text", "")
+                    raise ValueError("Empty response from Gemini API")
+            except httpx.HTTPStatusError:
+                continue
+
+        raise ValueError(f"Gemini model '{self.model_id}' not found on any API version. Use gemini-2.5-flash instead.")
 
     async def stream(self, prompt: str, system_prompt: Optional[str] = None,
                      max_tokens: int = 4096, temperature: float = 0.7, **kwargs) -> AsyncGenerator[str, None]:
@@ -241,6 +261,9 @@ class GroqProvider(BaseAIProvider):
                        max_tokens: int = 4096, temperature: float = 0.7, **kwargs) -> str:
         import httpx
 
+        if not self.api_key:
+            raise ValueError("GROQ_API_KEY not configured.")
+
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -257,6 +280,10 @@ class GroqProvider(BaseAIProvider):
                     "temperature": temperature,
                 },
             )
+            if response.status_code == 404:
+                raise ValueError(f"Groq model '{self.model_id}' not found. Available: llama-3.3-70b-versatile, llama-4-scout-17b-16e-instruct, mixtral-8x7b-32768")
+            if response.status_code == 401:
+                raise ValueError("GROQ_API_KEY is invalid. Get a free key at console.groq.com")
             response.raise_for_status()
             data = response.json()
             return data["choices"][0]["message"]["content"]
