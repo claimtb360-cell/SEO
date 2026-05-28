@@ -1,89 +1,323 @@
 {% extends "base.html" %}
-{% block title %}Analyze - SEO Tool{% endblock %}
-{% block page_title %}SEO Analysis{% endblock %}
+{% block title %}Analyze - SEO & GEO Tool{% endblock %}
+{% block page_title %}SEO & GEO Analysis{% endblock %}
 
 {% block content %}
 <div x-data="analyzePage()">
     <!-- Input Form -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h3 class="text-lg font-semibold mb-4">Analyze a Page</h3>
-        <form @submit.prevent="analyze()" class="space-y-4">
+        <h3 class="text-lg font-semibold mb-4">Comprehensive 80-Factor Analysis</h3>
+        <form @submit.prevent="runAnalysis()" class="space-y-4">
             <div class="flex gap-3">
                 <input type="url" x-model="url" placeholder="https://example.com"
-                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500" required>
+                       class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
                 <input type="text" x-model="keyword" placeholder="Target keyword (optional)"
-                       class="w-64 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                       class="w-64 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
-            <button type="submit" :disabled="loading"
-                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                <span x-text="loading ? 'Analyzing...' : 'Run Full Analysis'"></span>
-            </button>
+            <div class="flex gap-3">
+                <button type="submit" :disabled="loading"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
+                    <span x-show="!loading">Run 80-Factor Analysis</span>
+                    <span x-show="loading" class="flex items-center gap-2">
+                        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Analyzing...
+                    </span>
+                </button>
+                <button type="button" @click="runGEO()" :disabled="loading || !url"
+                        class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition">
+                    GEO Check Only
+                </button>
+                <button type="button" @click="runTechnical()" :disabled="loading || !url"
+                        class="bg-gray-700 text-white px-6 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition">
+                    Technical Only
+                </button>
+            </div>
         </form>
     </div>
 
-    <!-- Results -->
+
+    <!-- Results Section -->
     <div x-show="result" x-cloak>
-        <!-- Score Overview -->
+        <!-- Overall Score with Circular Gauge -->
         <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold">Score Overview</h3>
-                <span class="text-3xl font-bold"
-                      :class="result?.overall_score >= 80 ? 'text-green-600' : result?.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'"
-                      x-text="result?.overall_score + '/100'"></span>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Overall Score</h3>
+                    <p class="text-sm text-gray-500" x-text="'URL: ' + result?.url"></p>
+                    <p class="text-sm text-gray-500" x-text="result?.passed_factors + '/' + result?.total_factors + ' factors passed'"></p>
+                </div>
+                <!-- Circular Gauge -->
+                <div class="relative w-32 h-32">
+                    <svg class="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+                        <circle cx="60" cy="60" r="50" fill="none"
+                                :stroke="result?.overall_score >= 80 ? '#22c55e' : result?.overall_score >= 60 ? '#eab308' : '#ef4444'"
+                                stroke-width="10" stroke-linecap="round"
+                                :stroke-dasharray="(result?.overall_score / 100) * 314 + ' 314'"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-3xl font-bold"
+                              :class="result?.overall_score >= 80 ? 'text-green-600' : result?.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'"
+                              x-text="Math.round(result?.overall_score || 0)"></span>
+                    </div>
+                </div>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                <template x-for="(data, key) in result?.analysis" :key="key">
-                    <div class="border rounded-lg p-3 text-center cursor-pointer hover:shadow-md transition"
-                         @click="activeTab = key"
-                         :class="activeTab === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
-                        <div class="text-xl font-bold"
-                             :class="data.score >= 80 ? 'text-green-600' : data.score >= 60 ? 'text-yellow-600' : 'text-red-600'"
-                             x-text="Math.round(data.score)"></div>
-                        <p class="text-xs text-gray-600 capitalize" x-text="key"></p>
+
+            <!-- Export Buttons -->
+            <div class="flex gap-3 mt-4 pt-4 border-t">
+                <a :href="'/api/v1/analyze/export/pdf'" target="_blank"
+                   class="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-2 rounded-lg hover:bg-red-100 transition text-sm font-medium">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </a>
+                <a :href="'/api/v1/analyze/export/json'" target="_blank"
+                   class="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition text-sm font-medium">
+                    <i class="fas fa-file-code"></i> Export JSON
+                </a>
+                <a :href="'/api/v1/analyze/export/csv'" target="_blank"
+                   class="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-lg hover:bg-green-100 transition text-sm font-medium">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                </a>
+            </div>
+        </div>
+
+
+        <!-- Category Score Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-6">
+            <template x-for="(catData, catKey) in result?.categories || {}" :key="catKey">
+                <div class="bg-white rounded-lg shadow p-4 text-center cursor-pointer hover:shadow-md transition border-2"
+                     @click="activeTab = catKey"
+                     :class="activeTab === catKey ? 'border-blue-500 bg-blue-50' : 'border-transparent'">
+                    <div class="text-2xl font-bold mb-1"
+                         :class="catData.score >= 80 ? 'text-green-600' : catData.score >= 60 ? 'text-yellow-600' : 'text-red-600'"
+                         x-text="Math.round(catData.score)"></div>
+                    <p class="text-xs text-gray-600 leading-tight" x-text="catData.name || catKey.replace(/_/g, ' ')"></p>
+                    <p class="text-xs text-gray-400 mt-1" x-text="catData.passed_count + '/' + catData.total_count"></p>
+                </div>
+            </template>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+            <div class="flex overflow-x-auto border-b">
+                <template x-for="(catData, catKey) in result?.categories || {}" :key="'tab-'+catKey">
+                    <button @click="activeTab = catKey"
+                            class="px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition"
+                            :class="activeTab === catKey ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                        <span x-text="(catData.name || catKey.replace(/_/g, ' ')).substring(0, 20)"></span>
+                    </button>
+                </template>
+            </div>
+
+            <!-- Factor Checklist -->
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4 capitalize" x-text="(result?.categories?.[activeTab]?.name || activeTab?.replace(/_/g, ' ')) + ' — ' + Math.round(result?.categories?.[activeTab]?.score || 0) + '/100'"></h3>
+                <div class="space-y-2">
+                    <template x-for="factor in result?.categories?.[activeTab]?.factors || []" :key="factor.name">
+                        <div class="flex items-start gap-3 p-3 rounded-lg border"
+                             :class="factor.passed ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'">
+                            <div class="flex-shrink-0 mt-0.5">
+                                <span x-show="factor.passed" class="text-green-600 text-lg">&#10004;</span>
+                                <span x-show="!factor.passed" class="text-red-600 text-lg">&#10008;</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-sm font-medium text-gray-800" x-text="factor.name"></p>
+                                    <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                                          :class="factor.score >= 80 ? 'bg-green-200 text-green-800' : factor.score >= 60 ? 'bg-yellow-200 text-yellow-800' : 'bg-red-200 text-red-800'"
+                                          x-text="factor.score + '/100'"></span>
+                                </div>
+                                <p class="text-xs text-gray-600 mt-1" x-text="factor.message"></p>
+                                <p x-show="!factor.passed && factor.recommendation"
+                                   class="text-xs text-blue-600 mt-1 italic" x-text="factor.recommendation"></p>
+                            </div>
+                            <span class="text-xs px-2 py-0.5 rounded"
+                                  :class="factor.priority === 'high' ? 'bg-red-100 text-red-700' : factor.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'"
+                                  x-text="factor.priority" x-show="!factor.passed"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- GEO Signals Section -->
+        <div x-show="geoResult" class="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-robot text-purple-500"></i>
+                GEO - AI Engine Optimization
+            </h3>
+
+            <!-- Engine Scores -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <template x-for="(score, engine) in geoResult?.engine_scores || {}" :key="engine">
+                    <div class="text-center p-4 rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100">
+                        <div class="text-2xl mb-1">
+                            <span x-show="engine === 'ChatGPT'"><i class="fas fa-comment-dots text-green-500"></i></span>
+                            <span x-show="engine === 'Gemini'"><i class="fas fa-star text-blue-500"></i></span>
+                            <span x-show="engine === 'Perplexity'"><i class="fas fa-search text-orange-500"></i></span>
+                            <span x-show="engine === 'Copilot'"><i class="fas fa-code text-gray-700"></i></span>
+                        </div>
+                        <p class="text-xs font-medium text-gray-600" x-text="engine"></p>
+                        <p class="text-xl font-bold mt-1"
+                           :class="score >= 70 ? 'text-green-600' : score >= 40 ? 'text-yellow-600' : 'text-red-600'"
+                           x-text="Math.round(score)"></p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- GEO Signals List -->
+            <div class="space-y-3">
+                <template x-for="signal in geoResult?.signals || []" :key="signal.name">
+                    <div class="border rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-medium text-sm" x-text="signal.name"></h4>
+                            <span class="text-sm font-bold"
+                                  :class="signal.score >= 70 ? 'text-green-600' : signal.score >= 40 ? 'text-yellow-600' : 'text-red-600'"
+                                  x-text="signal.score + '/100'"></span>
+                        </div>
+                        <p class="text-xs text-gray-500 mb-2" x-text="signal.details"></p>
+                        <!-- Progress bar -->
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="rounded-full h-2 transition-all"
+                                 :class="signal.score >= 70 ? 'bg-green-500' : signal.score >= 40 ? 'bg-yellow-500' : 'bg-red-500'"
+                                 :style="'width: ' + signal.score + '%'"></div>
+                        </div>
+                        <!-- Recommendations -->
+                        <div x-show="signal.recommendations?.length > 0" class="mt-2">
+                            <template x-for="rec in signal.recommendations" :key="rec">
+                                <p class="text-xs text-blue-600 mt-1">&#8226; <span x-text="rec"></span></p>
+                            </template>
+                        </div>
+                        <!-- Engine badges -->
+                        <div class="flex gap-1 mt-2">
+                            <template x-for="eng in signal.engine_relevance || []" :key="eng">
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600" x-text="eng"></span>
+                            </template>
+                        </div>
                     </div>
                 </template>
             </div>
         </div>
 
-        <!-- Detail Tab -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold mb-4 capitalize" x-text="activeTab + ' Details'"></h3>
-            <div class="space-y-3">
-                <template x-for="issue in result?.analysis[activeTab]?.issues || []" :key="issue.message">
-                    <div class="flex items-start gap-3 p-3 rounded-lg" :class="issue.severity === 'error' ? 'bg-red-50' : issue.severity === 'warning' ? 'bg-yellow-50' : 'bg-blue-50'">
-                        <span class="px-2 py-0.5 rounded text-xs font-medium"
-                              :class="issue.severity === 'error' ? 'bg-red-200 text-red-800' : issue.severity === 'warning' ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-200 text-blue-800'"
-                              x-text="issue.severity"></span>
+
+        <!-- Prioritized Recommendations -->
+        <div x-show="result?.recommendations?.length > 0" class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">
+                <i class="fas fa-lightbulb text-yellow-500"></i>
+                Top Recommendations
+            </h3>
+            <div class="space-y-2">
+                <template x-for="(rec, i) in (result?.recommendations || []).slice(0, 15)" :key="i">
+                    <div class="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                              :class="rec.priority === 'high' ? 'bg-red-500' : rec.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'"
+                              x-text="i + 1"></span>
                         <div>
-                            <p class="text-sm font-medium text-gray-800" x-text="issue.message"></p>
-                            <p class="text-xs text-gray-500 mt-1" x-text="issue.suggestion"></p>
+                            <p class="text-sm font-medium text-gray-800">
+                                <span class="text-gray-400" x-text="rec.category?.replace(/_/g, ' ') + ' >'"></span>
+                                <span x-text="rec.factor"></span>
+                            </p>
+                            <p class="text-xs text-gray-600 mt-1" x-text="rec.recommendation"></p>
                         </div>
                     </div>
                 </template>
-                <p x-show="!result?.analysis[activeTab]?.issues?.length" class="text-green-600 text-sm">
-                    <i class="fas fa-check-circle"></i> No issues found!
-                </p>
             </div>
         </div>
     </div>
 </div>
 
+
 <script>
 function analyzePage() {
     return {
-        url: '', keyword: '', loading: false, result: null, activeTab: 'meta',
-        async analyze() {
-            this.loading = true; this.result = null;
+        url: '',
+        keyword: '',
+        loading: false,
+        result: null,
+        geoResult: null,
+        activeTab: 'meta_tags',
+
+        async runAnalysis() {
+            this.loading = true;
+            this.result = null;
+            this.geoResult = null;
             try {
-                const res = await fetch('/api/v1/analyze', {
+                const res = await fetch('/api/v1/analyze/full', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({url: this.url, target_keyword: this.keyword || null})
                 });
                 const json = await res.json();
-                if (json.success) { this.result = json.data; this.activeTab = 'meta'; }
-                else alert(json.detail || 'Failed');
-            } catch(e) { alert('Error: ' + e.message); }
+                if (json.success) {
+                    this.result = json.data;
+                    this.activeTab = Object.keys(json.data.categories || {})[0] || 'meta_tags';
+                    // Also run GEO check
+                    this.runGEOSilent();
+                } else {
+                    alert(json.detail || json.message || 'Analysis failed');
+                }
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+            this.loading = false;
+        },
+
+        async runGEO() {
+            this.loading = true;
+            this.geoResult = null;
+            try {
+                const res = await fetch('/api/v1/analyze/geo', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: this.url, target_keyword: this.keyword || null})
+                });
+                const json = await res.json();
+                if (json.success) {
+                    this.geoResult = json.data;
+                } else {
+                    alert(json.detail || json.message || 'GEO check failed');
+                }
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+            this.loading = false;
+        },
+
+        async runGEOSilent() {
+            try {
+                const res = await fetch('/api/v1/analyze/geo', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: this.url, target_keyword: this.keyword || null})
+                });
+                const json = await res.json();
+                if (json.success) { this.geoResult = json.data; }
+            } catch(e) { /* silent */ }
+        },
+
+        async runTechnical() {
+            this.loading = true;
+            this.result = null;
+            this.geoResult = null;
+            try {
+                const res = await fetch('/api/v1/analyze/technical', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: this.url, target_keyword: this.keyword || null})
+                });
+                const json = await res.json();
+                if (json.success) {
+                    this.result = json.data;
+                    this.activeTab = Object.keys(json.data.categories || {})[0] || 'technical_seo';
+                } else {
+                    alert(json.detail || json.message || 'Technical check failed');
+                }
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
             this.loading = false;
         }
     }

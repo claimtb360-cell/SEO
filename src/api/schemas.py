@@ -52,6 +52,13 @@ class RobotsGenerateRequest(BaseModel):
     mode: str = "default"  # "default", "permissive", "restrictive"
 
 
+class SERPCheckRequest(BaseModel):
+    keyword: str
+    engine: Optional[str] = "google"
+    num_results: Optional[int] = 100
+    track_domain: Optional[str] = None
+
+
 class ApiResponse(BaseModel):
     success: bool = True
     data: dict = {}
