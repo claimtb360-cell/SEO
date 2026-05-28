@@ -1,5 +1,6 @@
 """Auto Article Writer - Full pipeline: Research → Outline → Draft → Optimize → Publish-ready."""
 
+import asyncio
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
@@ -83,7 +84,7 @@ Rules:
 
 Write the complete section content:"""
 
-OPTIMIZE_DRAFT_PROMPT = """Optimize this article draft for SEO and readability:
+OPTIMIZE_DRAFT_PROMPT = """Optimize this article draft for SEO and readability to produce a FULL SEO-STANDARD article:
 
 **Full Draft:**
 {draft}
@@ -92,23 +93,58 @@ OPTIMIZE_DRAFT_PROMPT = """Optimize this article draft for SEO and readability:
 **Secondary Keywords:** {secondary_keywords}
 **Target Keyword Density:** 1.5-2%
 
-Optimization checklist:
+The optimized article MUST include ALL of the following elements:
+
+1. **Table of Contents** - Auto-generated from H2 headings with anchor links at the top of the article, formatted as:
+   - [Section Title](#section-anchor)
+
+2. **Schema Markup Suggestions** - At the very end of the article, provide JSON-LD structured data for:
+   - Article schema
+   - FAQ schema (from FAQ section)
+   - HowTo schema (if article contains step-by-step instructions)
+
+3. **Internal Link Placeholders** - Throughout the article, add contextual internal links formatted as:
+   [anchor text](/related-topic) — include at least 3-5 internal links
+
+4. **Image Alt Text Suggestions** - At key points in the article, add image placeholders:
+   ![descriptive alt text](image-placeholder.jpg) — include at least 2-3 images
+
+5. **Featured Snippet Format** - At least one section formatted as a direct answer:
+   - Definition box (for "what is" queries)
+   - OR numbered steps (for "how to" queries)
+   - OR bullet-point list (for "best/top" queries)
+
+6. **Yoast-style SEO Checklist** - At the very end after Schema Markup, show pass/fail:
+   ---
+   **SEO Checklist:**
+   - Keyword in title ✓/✗
+   - Keyword in first paragraph ✓/✗
+   - Keyword density 1-2% ✓/✗
+   - Meta description length ✓/✗
+   - Internal links present ✓/✗
+   - External links present ✓/✗
+   - Image with alt text ✓/✗
+   - Heading hierarchy ✓/✗
+   - Content length > 1000 words ✓/✗
+   - FAQ section present ✓/✗
+
+Optimization rules:
 1. Ensure keyword appears in first paragraph
 2. Add keyword to at least one H2 heading
 3. Improve transition sentences between sections
-4. Add internal link anchor text suggestions [like this](url-placeholder)
-5. Ensure conclusion has a clear CTA
-6. Fix any readability issues (sentences > 20 words)
-7. Add power words for engagement
-8. Ensure proper heading hierarchy
-9. Add alt text suggestions for any images mentioned
-10. Format for featured snippet (if applicable)
+4. Ensure conclusion has a clear CTA
+5. Fix any readability issues (sentences > 20 words)
+6. Add power words for engagement
+7. Ensure proper heading hierarchy (H1 → H2 → H3)
+8. Format for featured snippet opportunity
 
-Return the optimized article in Markdown format. At the end, add:
+Return the COMPLETE optimized article in Markdown format with ALL elements above included.
+
+At the end, also add:
 ---
 **SEO Metadata:**
-- Meta Title: <optimized>
-- Meta Description: <optimized>
+- Meta Title: <optimized, 50-60 chars>
+- Meta Description: <optimized, 150-160 chars>
 - Focus Keyword: {keyword}
 - Keyword Density: <calculated %>
 - Word Count: <total>
@@ -253,6 +289,7 @@ class AutoWriter:
                     secondary_keywords = ", ".join(
                         kw.get("keyword", "") for kw in related[:5]
                     )
+                await asyncio.sleep(1)  # Delay between stages to avoid rate limiting
             else:
                 search_intent = "informational"
                 key_topics = []
@@ -273,6 +310,7 @@ class AutoWriter:
             )
             result.outline = outline
             result.stages_completed.append("outline")
+            await asyncio.sleep(1)  # Delay between stages to avoid rate limiting
 
             # Stage 3: Write Draft (section by section)
             result.stage = "draft"
@@ -281,6 +319,7 @@ class AutoWriter:
             result.raw_draft = draft
             result.draft_word_count = len(draft.split())
             result.stages_completed.append("draft")
+            await asyncio.sleep(1)  # Delay between stages to avoid rate limiting
 
             # Stage 4: Optimize
             result.stage = "optimize"
@@ -420,6 +459,7 @@ Write in markdown format starting with # {outline.title}"""
             temperature=0.7,
         )
         parts.append(intro)
+        await asyncio.sleep(2)  # Rate limit delay between API calls
 
         # Write each section
         context = "Introduction written about " + outline.introduction.get("thesis", "the topic")
@@ -444,6 +484,7 @@ Write in markdown format starting with # {outline.title}"""
                 temperature=0.7,
             )
             parts.append(section_content)
+            await asyncio.sleep(2)  # Rate limit delay between API calls
             context = f"Section '{section.get('heading', '')}' covered: {', '.join(section.get('key_points', [])[:2])}"
 
         # Write FAQ section
@@ -466,6 +507,7 @@ Tone: {tone}, Language: {language}"""
                 temperature=0.6,
             )
             parts.append(faq_content)
+            await asyncio.sleep(2)  # Rate limit delay between API calls
 
         # Write conclusion
         conclusion_prompt = f"""Write a conclusion for the article "{outline.title}".
@@ -484,6 +526,7 @@ Start with ## Conclusion"""
             temperature=0.6,
         )
         parts.append(conclusion)
+        await asyncio.sleep(2)  # Rate limit delay between API calls
 
         return "\n\n".join(parts)
 

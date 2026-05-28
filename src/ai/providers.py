@@ -1,9 +1,13 @@
 """AI provider clients - unified interface for multiple AI APIs."""
 
+import asyncio
+import logging
 from typing import Optional, Dict, Any, AsyncGenerator
 from abc import ABC, abstractmethod
 
 from src.utils.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class BaseAIProvider(ABC):
@@ -208,35 +212,45 @@ class GoogleProvider(BaseAIProvider):
             contents.append({"role": "model", "parts": [{"text": "Understood."}]})
         contents.append({"role": "user", "parts": [{"text": prompt}]})
 
+        max_retries = 3
         # Try v1beta first, fallback to v1
         for api_version in ["v1beta", "v1"]:
-            try:
-                async with httpx.AsyncClient(timeout=120) as client:
-                    response = await client.post(
-                        f"https://generativelanguage.googleapis.com/{api_version}/models/{self.model_id}:generateContent",
-                        params={"key": self.api_key},
-                        json={
-                            "contents": contents,
-                            "generationConfig": {
-                                "maxOutputTokens": max_tokens,
-                                "temperature": temperature,
+            for attempt in range(max_retries):
+                try:
+                    async with httpx.AsyncClient(timeout=120) as client:
+                        response = await client.post(
+                            f"https://generativelanguage.googleapis.com/{api_version}/models/{self.model_id}:generateContent",
+                            params={"key": self.api_key},
+                            json={
+                                "contents": contents,
+                                "generationConfig": {
+                                    "maxOutputTokens": max_tokens,
+                                    "temperature": temperature,
+                                },
                             },
-                        },
-                    )
-                    if response.status_code == 404:
-                        continue  # Try next API version
-                    if response.status_code == 400:
-                        # Model not available, try fallback model
-                        raise ValueError(f"Model '{self.model_id}' not available. Try gemini-2.5-flash or gemini-2.5-pro.")
-                    response.raise_for_status()
-                    data = response.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts:
-                            return parts[0].get("text", "")
-                    raise ValueError("Empty response from Gemini API")
-            except httpx.HTTPStatusError:
+                        )
+                        if response.status_code == 429:
+                            wait_time = 5 * (2 ** attempt)
+                            logger.warning(f"[GoogleProvider] Rate limited (429). Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                            await asyncio.sleep(wait_time)
+                            continue
+                        if response.status_code == 404:
+                            break  # Try next API version
+                        if response.status_code == 400:
+                            raise ValueError(f"Model '{self.model_id}' not available. Try gemini-2.5-flash or gemini-2.5-pro.")
+                        response.raise_for_status()
+                        data = response.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                return parts[0].get("text", "")
+                        raise ValueError("Empty response from Gemini API")
+                except httpx.HTTPStatusError:
+                    break
+            else:
+                # All retries exhausted for this api_version due to 429
+                logger.warning(f"[GoogleProvider] All {max_retries} retries exhausted for {api_version}")
                 continue
 
         raise ValueError(f"Gemini model '{self.model_id}' not found on any API version. Use gemini-2.5-flash instead.")
@@ -269,24 +283,33 @@ class GroqProvider(BaseAIProvider):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
-                json={
-                    "model": self.model_id,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                },
-            )
-            if response.status_code == 404:
-                raise ValueError(f"Groq model '{self.model_id}' not found. Available: llama-3.3-70b-versatile, llama-4-scout-17b-16e-instruct, mixtral-8x7b-32768")
-            if response.status_code == 401:
-                raise ValueError("GROQ_API_KEY is invalid. Get a free key at console.groq.com")
-            response.raise_for_status()
-            data = response.json()
-            return data["choices"][0]["message"]["content"]
+        max_retries = 3
+        for attempt in range(max_retries):
+            async with httpx.AsyncClient(timeout=60) as client:
+                response = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": self.model_id,
+                        "messages": messages,
+                        "max_tokens": max_tokens,
+                        "temperature": temperature,
+                    },
+                )
+                if response.status_code == 429:
+                    wait_time = 5 * (2 ** attempt)
+                    logger.warning(f"[GroqProvider] Rate limited (429). Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(wait_time)
+                    continue
+                if response.status_code == 404:
+                    raise ValueError(f"Groq model '{self.model_id}' not found. Available: llama-3.3-70b-versatile, llama-4-scout-17b-16e-instruct, mixtral-8x7b-32768")
+                if response.status_code == 401:
+                    raise ValueError("GROQ_API_KEY is invalid. Get a free key at console.groq.com")
+                response.raise_for_status()
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+
+        raise ValueError("Groq rate limit exceeded after 3 retries. Please wait and try again.")
 
     async def stream(self, prompt: str, system_prompt: Optional[str] = None,
                      max_tokens: int = 4096, temperature: float = 0.7, **kwargs) -> AsyncGenerator[str, None]:
